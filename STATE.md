@@ -4,74 +4,160 @@ Last updated: 2026-07-22 (Pacific/Honolulu)
 
 ## Overall
 
-- The main Erdős–Straus theorem remains open.
-- The exact target requires `1 ≤ x < y < z`; no weakening is permitted.
-- Phase 1 helper modules are implemented in the Formal Conjectures fork.
-- The known `MinimalCounterexample.lean` lower-bound failure has been patched and is under CI verification.
+- The main Erdős–Straus theorem remains **open**.
+- The exact Formal Conjectures target requires `1 ≤ x < y < z`; no weakening is permitted.
+- Phase 1's strict-denominator foundation is kernel checked.
+- The Bradford-style `q ∣ x²` normalization and prime-specific strict bridge are kernel checked.
+- Mordell's modulo-840 reduction and exact `d=3`/`d=7` gate characterizations are active formalization work.
+- Exact finite Type-II evidence has been independently reproduced through `10^8` for all residual primes and extended through `10^9` for all primes in Mordell's six classes.
 
-## Lean integration
+## Formal Conjectures integration
 
 Repository: `akakabrian/formal-conjectures`
 
-Branch: `erdos-242-phase1`
+### Phase 1
 
-Current head: `e63496b0bd64b9383df186e09a9999940d623f66`
-
-Draft PR: https://github.com/akakabrian/formal-conjectures/pull/2
-
-Patch at current head:
-
-```lean
-have hpTwo : 2 ≤ p := hpCounter.1.le
-rw [Nat.prime_iff_not_exists_mul_eq]
-refine ⟨hpTwo, ?_⟩
+```text
+branch: erdos-242-phase1
+head:   56ebdc61140eff1ab2166f9715b3af3283874106
+PR:     https://github.com/akakabrian/formal-conjectures/pull/2
 ```
 
-This replaces an opaque `omega` attempt to establish `2 ≤ p`.
+Kernel/build evidence:
 
-## CI runs for current head
+- targeted warnings-as-errors, forbidden-token, and axiom audit: run `29975624155`, success;
+- copyright: run `29975624160`, success;
+- full repository workflow: run `29975624182`;
+- the full workflow's `Build project` step passed; documentation generation remains in progress.
 
-- Targeted Erdős 242 check: run `29975162859`
-- Full Lean build/docs: run `29975162879`
-- Copyright check: run `29975162925`
+The standalone axiom log reports only:
 
-At the time of this update, copyright had passed and both Lean runs were still executing. Final conclusions must be recorded in this file and issue #1.
+```text
+propext
+Classical.choice
+Quot.sound
+```
 
-## Phase 1 theorem inventory
+for the audited helper theorems, with no `sorryAx`.
 
-Implemented helper modules:
+### Divisor-square normalization
 
-- `Basic.lean`
-- `ElementaryFamilies.lean`
-- `Scaling.lean`
-- `Reduction.lean`
-- `MinimalCounterexample.lean`
-- `TypeIIFactorPair.lean`
-- `DivisorResidues.lean`
-- `SmallGates.lean`
+```text
+branch: erdos-242-typeii-equivalence
+head:   fb81c29d727068efc89ebb9be56a23818fc5e924
+PR:     https://github.com/akakabrian/formal-conjectures/pull/9
+```
 
-Intended kernel-checked results include:
+Kernel-checked theorems:
 
-- strict polynomial certificate and rational bridge;
-- even, `2 mod 3`, `3 mod 4`, and `5 mod 8` strict families;
-- divisor scaling;
-- reduction of a counterexample to `1 mod 24`;
-- existence of a prime `1 mod 24` counterexample if any counterexample exists;
-- Type-II factor-pair identity and strict certificate;
-- opposite-coprime-divisor conversion;
-- the first `d = 3` divisor gate.
+- `divisorSquare_hasOppositeCoprimeDivisors`;
+- `divisorSquare_hasDistinctDecomposition`;
+- `coprime_offset_of_prime`;
+- `prime_divisorSquare_hasDistinctDecomposition`.
 
-## Computational evidence
+Evidence:
 
-Reported finite profiling through primes `p ≤ 100,000,000`, `p ≡ 1 mod 24` found Type-II witnesses for all 719,781 tested primes. This result has not yet been reproduced from committed scripts and data in this repository and is not a universal proof.
+- targeted audit run `29977268341`, success;
+- copyright run `29977268327`, success;
+- full repository workflow `29977268329`: `Build project` passed; documentation generation remains in progress.
 
-## Current blocker
+### Mordell reduction
 
-The immediate blocker is obtaining green targeted and full Lean CI for commit `e63496b0...`, followed by an explicit axiom and forbidden-token audit.
+```text
+branch: erdos-242-mordell-reduction
+head:   3f51c349306030081563331c51f8fcc01757de6a
+PR:     https://github.com/akakabrian/formal-conjectures/pull/10
+```
+
+Implemented, awaiting current CI completion:
+
+- six explicit strict `d=3`/`d=7` families;
+- modulo-120 prime-counterexample reduction;
+- modulo-168 prime-counterexample reduction;
+- CRT intersection to `{1,121,169,289,361,529} mod 840`;
+- conditional existence of a prime counterexample in a Mordell class.
+
+Targeted workflow run `29977589520` is queued.
+
+### Exact small-gate residues
+
+```text
+branch: erdos-242-small-gate-residues
+head:   93e575c13b5a90c10e7c24f089d07d2e62d1cf8c
+PR:     https://github.com/akakabrian/formal-conjectures/pull/11
+```
+
+Implemented, awaiting CI:
+
+- explicit `d=7` prime-factor triggers for residues `3,5,6 mod 7`;
+- multiplicative closure lemmas for prime-factor residue conditions;
+- exact `d=3` characterization;
+- exact `d=7` characterization for even `x` coprime to 7.
+
+## Canonical research repository
+
+Repository: `akakabrian/ErdosStraus`
+
+Branch: `formal/phase1-minimal-counterexample`
+
+Draft PR: https://github.com/akakabrian/ErdosStraus/pull/6
+
+The repository now contains durable planning, state, decisions, worklog, formal provenance, derivations, literature audits, exact profilers, compact data summaries, and certificate fixtures.
+
+## Exact finite computation
+
+### All residual primes through `10^8`
+
+```text
+population: p ≤ 100,000,000, p ≡ 1 mod 24
+primes checked: 719,781
+unresolved: 0
+largest first-witness k: 26
+largest d: 107
+```
+
+This run is committed and independently reproducible with `scripts/typeii_profiler.py`.
+
+### Mordell-residue primes through `10^9`
+
+```text
+population: primes p ≤ 1,000,000,000 with
+            p mod 840 ∈ {1,121,169,289,361,529}
+primes checked: 1,587,581
+unresolved with k ≤ 80: 0
+largest first-witness k: 31
+largest d: 127
+```
+
+New exact record:
+
+```text
+p=153633769
+x=38408474
+k=31
+d=127
+q=2821949
+a=113, b=1538, c=221, s=13
+```
+
+This decisively refutes the empirical hypotheses `k≤26` and `d≤107`. It does not refute Type-II coverage or prove Erdős–Straus.
+
+## Structural results
+
+- Outside Mordell's six modulo-840 classes, the `d=3` and `d=7` families give a universal reduction.
+- Failure of `d=3` is exactly the condition that every prime factor of `x_0=(p+3)/4` is `1 mod 3`.
+- For even `x_1=(p+7)/4` coprime to 7, failure of `d=7` is exactly the condition that every prime factor lies in `{1,2,4} mod 7`.
+- Failure of `d=11` necessarily avoids prime-factor residues `{7,8,10} mod 11`; this is not yet a sufficient characterization.
+
+## Current blockers
+
+1. GitHub Actions capacity has left the newest Mordell and small-gate targeted runs queued.
+2. The full repository Lean build steps pass, but the shared documentation workflow remains long-running after the build step.
+3. The universal coverage obligation remains mathematically open: no proof yet forces one of the Type-II gates to succeed for every Mordell-residue prime.
 
 ## Next
 
-1. Inspect the CI result and repair any subsequent Lean error.
-2. Add warnings-as-errors and axiom-audit evidence.
-3. Update issue #1 and this state file with immutable run IDs and conclusions.
-4. Begin the original `q ∣ x²` divisor-certificate normalization only after Phase 1 is clean.
+1. Repair and kernel-check the Mordell reduction and exact small-gate characterizations as soon as their targeted runs execute.
+2. Add those theorems to the standalone axiom audit.
+3. Formalize the general fixed-divisor trigger mechanism for later offsets.
+4. Mine simultaneous subgroup avoidance in the new `k=31` record and the complete exact datasets.
