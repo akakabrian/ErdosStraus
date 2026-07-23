@@ -59,6 +59,37 @@ a<b<ps
 
 No floating-point arithmetic is used.
 
+## `typeii_segmented_profiler.py`
+
+Uses a segmented sieve to scan large intervals of primes in Mordell's six classes modulo 840 without allocating a full-range prime table.
+
+```bash
+python scripts/typeii_segmented_profiler.py \
+  --start 100000001 \
+  --limit 1000000000 \
+  --max-k 80 \
+  --json data/typeii-summary-mordell-1b.json
+```
+
+This script found the exact record `p=153633769`, `k=31`, disproving the earlier empirical ceiling `k≤26` while leaving the universal conjecture open.
+
+## `affine_typeii_sieve.py`
+
+Enumerates two strict-safe affine specializations of the Type-II factor-pair identity:
+
+- fixed `a,b`, affine `c`;
+- fixed `a,c`, affine `b`.
+
+It reports unit residues `r ≡ 1 mod 24` not covered by those congruence families. At modulus 9240 it reconstructs exactly the corrected 34 residual classes.
+
+```bash
+python scripts/affine_typeii_sieve.py \
+  --modulus 9240 \
+  --json data/affine-sieve-9240.json
+```
+
+The output is a finite congruence sieve. A nonzero residual set is not a counterexample, and a zero residual set would still require the general families and final cover to be kernel checked.
+
 ## `verify_certificate.py`
 
 Checks one JSON factor-pair certificate with exact integers and `fractions.Fraction`:
