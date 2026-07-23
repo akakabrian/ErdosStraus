@@ -1,0 +1,35 @@
+{
+  "p": 153633769,
+  "x": 38408474,
+  "k": 31,
+  "d": 127,
+  "q": 2821949,
+  "a": 113,
+  "b": 1538,
+  "c": 221,
+  "s": 13,
+  "p_mod_840": 289,
+  "p_mod_9240": 289,
+  "x_factorization": "2*13*17*113*769",
+  "d_factorization": "127",
+  "denominators": [
+    38408474,
+    49877049472081,
+    678857540602306
+  ],
+  "verification": {
+    "p_plus_d_equals_4x": true,
+    "q_divides_x_squared": true,
+    "q_less_than_x": true,
+    "d_divides_q_plus_x": true,
+    "gcd_a_b_equals_one": true,
+    "x_equals_abc": true,
+    "a_plus_b_equals_ds": true,
+    "strict_factor_pair_order": true,
+    "strict_denominator_order": true,
+    "polynomial_identity": true,
+    "exact_rational_identity": true
+  },
+  "scope": "single finite certificate; not a universal proof",
+  "note": "First exact record found beyond the prior p<=1e8 experiment; it disproves the empirical bounds k<=26 and d<=107."
+}
