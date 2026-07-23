@@ -1,0 +1,121 @@
+{
+  "base_run_through_1e8": {
+    "primes_checked": 179468,
+    "source": "filtered from typeii-100m exact witness CSV"
+  },
+  "first_witness_distribution": {
+    "0": 779745,
+    "1": 386431,
+    "10": 241,
+    "11": 610,
+    "12": 79,
+    "13": 95,
+    "14": 109,
+    "15": 28,
+    "16": 7,
+    "17": 39,
+    "18": 3,
+    "19": 13,
+    "2": 281600,
+    "20": 3,
+    "21": 5,
+    "22": 2,
+    "24": 1,
+    "25": 1,
+    "26": 1,
+    "3": 61701,
+    "31": 1,
+    "4": 38357,
+    "5": 26567,
+    "6": 3116,
+    "7": 6532,
+    "8": 983,
+    "9": 1311
+  },
+  "largest_d": 127,
+  "largest_first_witness_k": 31,
+  "max_k_searched": 80,
+  "mordell_residues": [
+    1,
+    121,
+    169,
+    289,
+    361,
+    529
+  ],
+  "primes_checked": 1587581,
+  "range": {
+    "limit": 1000000000,
+    "start": 73
+  },
+  "record_witness": {
+    "a": 113,
+    "b": 1538,
+    "c": 221,
+    "d": 127,
+    "d_factorization": "127",
+    "denominators": [
+      38408474,
+      49877049472081,
+      678857540602306
+    ],
+    "k": 31,
+    "p": 153633769,
+    "p_mod_840": 289,
+    "p_mod_9240": 289,
+    "q": 2821949,
+    "s": 13,
+    "x": 38408474,
+    "x_factorization": "2*13*17*113*769"
+  },
+  "scope": "finite exact computation; not a universal proof",
+  "searched_population": "all primes p in the six Mordell residue classes modulo 840",
+  "segmented_extension_1e8_to_1e9": {
+    "chunks": [
+      {
+        "elapsed_seconds": 17.537566016000255,
+        "largest_k": 31,
+        "limit": 250000000,
+        "primes_checked": 247159,
+        "start": 100000001
+      },
+      {
+        "elapsed_seconds": 18.036705636999613,
+        "largest_k": 24,
+        "limit": 400000000,
+        "primes_checked": 238971,
+        "start": 250000001
+      },
+      {
+        "elapsed_seconds": 19.441253974999654,
+        "largest_k": 17,
+        "limit": 550000000,
+        "primes_checked": 234338,
+        "start": 400000001
+      },
+      {
+        "elapsed_seconds": 19.567816860999756,
+        "largest_k": 21,
+        "limit": 700000000,
+        "primes_checked": 231836,
+        "start": 550000001
+      },
+      {
+        "elapsed_seconds": 20.323702589000277,
+        "largest_k": 25,
+        "limit": 850000000,
+        "primes_checked": 229098,
+        "start": 700000001
+      },
+      {
+        "elapsed_seconds": 21.087769181000112,
+        "largest_k": 21,
+        "limit": 1000000000,
+        "primes_checked": 226711,
+        "start": 850000001
+      }
+    ],
+    "primes_checked": 1408113
+  },
+  "unresolved_count": 0
+}
