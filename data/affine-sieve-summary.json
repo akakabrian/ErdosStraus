@@ -1,0 +1,52 @@
+{
+  "scope": "finite exact affine Type-II congruence sieve; not a universal proof",
+  "script": "scripts/affine_typeii_sieve.py",
+  "runs": [
+    {
+      "modulus": 9240,
+      "population_count": 240,
+      "family_congruence_count": 225,
+      "residual_count": 34,
+      "residual_density": 0.14166666666666666,
+      "residual_classes": [
+        1, 169, 289, 361, 529, 841, 961, 1369, 1681, 1849,
+        2041, 2209, 2521, 2641, 2689, 2809, 3361, 3481, 3529,
+        3721, 4321, 4489, 5041, 5161, 5329, 5569, 6169, 6241,
+        6889, 7561, 7681, 7921, 8089, 8761
+      ]
+    },
+    {
+      "modulus": 120120,
+      "factor_extension": [13],
+      "population_count": 2880,
+      "family_congruence_count": 889,
+      "residual_count": 210,
+      "residual_density": 0.07291666666666667
+    },
+    {
+      "modulus": 2042040,
+      "factor_extension": [13, 17],
+      "population_count": 46080,
+      "family_congruence_count": 3472,
+      "residual_count": 1849,
+      "residual_density": 0.040125868055555555
+    },
+    {
+      "modulus": 2282280,
+      "factor_extension": [13, 19],
+      "population_count": 51840,
+      "family_congruence_count": 3425,
+      "residual_count": 2103,
+      "residual_density": 0.04056712962962963
+    },
+    {
+      "modulus": 38798760,
+      "factor_extension": [13, 17, 19],
+      "population_count": 829440,
+      "family_congruence_count": 13410,
+      "residual_count": 17512,
+      "residual_density": 0.02111304012345679
+    }
+  ],
+  "interpretation": "The two strict-safe affine Type-II templates exactly reproduce the 34 corrected modulo-9240 residual classes. Enlarging the modulus lowers residual density but does not produce a finite cover in these runs."
+}
