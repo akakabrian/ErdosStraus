@@ -50,6 +50,14 @@ Such verification may falsify candidate lemmas and discover structure. It cannot
 
 Showing density one, almost-all coverage, or high probability leaves possible exceptions and cannot establish the universal quantifier.
 
+### Distinct-prime-factor count forces the `d=11` gate
+
+**Status:** FALSIFIED.
+
+The proposed shortcut “five distinct prime factors of `x` force opposite coprime divisors modulo `11`” is false. Five distinct primes all congruent to `1 mod 11` leave every divisor congruent to `1 mod 11`, so no two coprime divisors can sum to `0 mod 11`.
+
+The exact state variable is the closure of disjoint prime-power residue assignments, not the number of distinct prime factors. See `docs/fixed-gate-automaton.md` and `scripts/fixed_gate_automaton.py`.
+
 ## Reopening rule
 
 A blocked family may be reopened only when a researcher supplies a materially new construction, invariant, descent, local-global argument, finite-obstruction theorem, or contradiction mechanism—not merely a cleaner restatement of the same gap.
