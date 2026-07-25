@@ -1,16 +1,24 @@
 # Proof Map
 
-## Exact target
+## Exact targets
 
-Prove, preferably in the stronger Formal Conjectures form:
+The Formal Conjectures target is the stronger ordered statement for `n > 2`:
 
 ```text
-∀ n ∈ ℕ, 2 ≤ n → ∃ x y z ∈ ℕ,
+∀ n ∈ ℕ, 2 < n → ∃ x y z ∈ ℕ,
   1 ≤ x ∧ x < y ∧ y < z ∧
   4 / n = 1 / x + 1 / y + 1 / z.
 ```
 
-The strict ordered target implies the ordinary positive-denominator Erdős–Straus conjecture.
+The ordinary Erdős–Straus conjecture is:
+
+```text
+∀ n ∈ ℕ, 2 ≤ n → ∃ x y z ∈ ℕ,
+  0 < x ∧ 0 < y ∧ 0 < z ∧
+  4 / n = 1 / x + 1 / y + 1 / z.
+```
+
+The endpoint `n=2` is handled by `(x,y,z)=(1,2,2)`. Strictly ordered denominators are impossible at `n=2`, so the strict target must not be stated with `2 ≤ n`.
 
 ## Established dependency chain
 
@@ -22,7 +30,7 @@ The strict ordered target implies the ordinary positive-denominator Erdős–Str
 3. Elementary residue families
    - remove all non-`1 mod 24` cases.
 4. Scaling and prime reduction
-   - any counterexample implies a prime counterexample congruent to `1 mod 24`.
+   - any counterexample with `n > 2` implies a prime counterexample congruent to `1 mod 24`.
 5. Type-II factor-pair and divisor-square normalizations
    - reusable sufficient criteria for strict decompositions.
 6. Mordell reduction
@@ -30,7 +38,8 @@ The strict ordered target implies the ordinary positive-denominator Erdős–Str
 7. Modulo-11 and corrected modulo-9240 reduction
    - a prime counterexample must lie in 34 classes modulo `9240`.
 8. Final conditional bridge
-   - `ResidualPrimeCoverage` implies the complete strict theorem.
+   - `ResidualPrimeCoverage` implies the complete strict theorem for `n > 2`;
+   - the strict theorem plus the explicit `n=2` identity implies the ordinary conjecture for every `n ≥ 2`.
 
 ## Exact remaining universal obligation
 
