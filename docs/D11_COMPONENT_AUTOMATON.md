@@ -73,26 +73,43 @@ the simplest are:
 (5,5,8)
 ```
 
-For example, `(2,3,3)` succeeds even though no two listed residues are additive
-opposites: assigning `2*3 = 6` to one side and `3` to the other gives
-`6 + 3 != 0`, but a different disjoint assignment in the exact state graph
-produces the required opposite products. The script is the authoritative way
-to recover the witness state; hand inspection of support alone is unsafe.
+For example, `(2,3,3)` succeeds even though no pair of listed components is
+additively opposite: assign the residue-2 component to one side and both
+residue-3 components to the other. The products are `2` and `3*3 = 9`, and
+`2 + 9 = 0 mod 11`. Hand inspection of prime support alone is therefore
+unsafe; complete prime-power components must be tracked.
+
+## Unique maximal support-only obstruction
+
+The script exhaustively enumerates subsets of `(Z/11Z)^*` that:
+
+1. contain `1`;
+2. are closed under multiplication;
+3. contain no additive-opposite pair.
+
+The unique maximal subset is
+
+```text
+H = {1,3,4,5,9},
+```
+
+the quadratic-residue subgroup.
+
+Consequently, the existing quadratic-residue obstruction is maximal among all
+arguments that use only a multiplicatively closed condition on individual
+prime-factor residues. A stronger `d=11` theorem must use prime-power
+exponents, component interactions, or arithmetic relations with another
+offset; enlarging the support-only residue set cannot work.
 
 ## Structural split for residual primes
 
 For a residual prime `p = 1 mod 24`, `x11=(p+11)/4` is divisible by 3.
-The formal branch now contains explicit trigger theorems for prime divisors
+The formal branch contains explicit trigger theorems for prime divisors
 congruent to `7`, `8`, or `10 mod 11`.
 
-The quadratic-residue subgroup
-
-```text
-H = {1,3,4,5,9}
-```
-
-is multiplicatively closed and contains no additive opposite pair. Hence if
-every prime factor of `x11` lies in `H`, the `d=11` gate fails.
+If every prime factor of `x11` lies in `H`, multiplicative closure keeps every
+divisor residue in `H`, and the absence of additive opposites forces the
+`d=11` gate to fail.
 
 The exact automaton shows that the unresolved region is not described merely by
 prime support. Prime-power exponents change component residues, and mixed
@@ -102,13 +119,16 @@ on the full multiset.
 ## Next theorem target
 
 The useful next target is not a fixed bound on the number of prime factors. It
-is a finite classification of minimal failing component multisets compatible
-simultaneously with:
+is a classification of component-state obstructions compatible simultaneously
+with:
 
 1. failure of the exact `d=3` gate;
 2. failure of the exact `d=7` gate;
 3. `p` lying in one of the 34 modulo-9240 residual classes;
 4. the affine relation `4*x11 = p+11`.
 
-Any claimed classification must be proved exhaustive. Dataset enumeration is
-only a falsification and discovery tool.
+A finite list of all failing multisets cannot exist without extra arithmetic
+constraints, because repetitions of residue `1` give arbitrarily large failing
+multisets. The correct finite object is the automaton state, or a proved finite
+quotient of it. Dataset enumeration remains a falsification and discovery tool,
+not a universal proof.
