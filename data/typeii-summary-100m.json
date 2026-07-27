@@ -1,0 +1,37 @@
+{
+  "a_equals_one": 669859,
+  "coverage_counts": {
+    "0": 430409,
+    "1": 665555,
+    "10": 719589,
+    "15": 719771,
+    "2": 700591,
+    "26": 719781,
+    "5": 717690
+  },
+  "elapsed_seconds": 25.219433913999865,
+  "largest_d": 107,
+  "largest_first_witness_k": 26,
+  "limit": 100000000,
+  "max_k": 26,
+  "nontrivial_a": 49922,
+  "primes_checked": 719781,
+  "record_witness": {
+    "a": 1,
+    "a_is_one": true,
+    "b": 18189,
+    "c": 121,
+    "d": 107,
+    "d_factorization": "107",
+    "k": 26,
+    "p": 8803369,
+    "q": 121,
+    "s": 170,
+    "x": 2200869,
+    "x_factorization": "3^2*11^2*43*47"
+  },
+  "resolved": 719781,
+  "scope": "finite exact computation; not a universal proof",
+  "unresolved_count": 0,
+  "unresolved_primes": []
+}
