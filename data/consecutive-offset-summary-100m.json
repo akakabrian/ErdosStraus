@@ -1,0 +1,109 @@
+{
+  "complete_two_fraction_factorization": {
+    "first_offset_distribution": {
+      "0": 430409,
+      "1": 235146,
+      "10": 26,
+      "11": 65,
+      "12": 7,
+      "13": 10,
+      "14": 10,
+      "15": 1,
+      "2": 35358,
+      "26": 1,
+      "3": 7618,
+      "4": 6125,
+      "5": 3383,
+      "6": 589,
+      "7": 811,
+      "8": 98,
+      "9": 124
+    },
+    "improvement_record": {
+      "complete_first_k": 2,
+      "offset_improvement": 15,
+      "p": 1430641,
+      "type_ii_first_k": 17,
+      "witness": {
+        "certificate_kind": "Type-I",
+        "d": 11,
+        "k": 2,
+        "normalized_parameters": {
+          "a": 1,
+          "b": 21039,
+          "c": 17,
+          "s": 2736296000
+        },
+        "p": 1430641,
+        "p_exponent_in_u": 0,
+        "q": 17,
+        "u": 17,
+        "v": 15401408598786737296017,
+        "x": 357663,
+        "y": 46517032000,
+        "z": 1400128054481674968000
+      }
+    },
+    "largest_first_k": 26,
+    "largest_offset_improvement": 15,
+    "selected_p_exponent_in_u": {
+      "0": 718825,
+      "1": 956
+    },
+    "strictly_earlier_than_type_ii_count": 1590,
+    "unresolved_count": 0,
+    "unresolved_primes": []
+  },
+  "limit": 100000000,
+  "max_k_for_bounded_searches": 40,
+  "residual_primes_checked": 719781,
+  "scope": "finite exact computation; not a universal proof",
+  "sequence": {
+    "d_k": "4*k+3",
+    "m": "(p+3)/4",
+    "x_k": "m+k"
+  },
+  "type_ii_only": {
+    "first_offset_distribution": {
+      "0": 430409,
+      "1": 235146,
+      "10": 33,
+      "11": 120,
+      "12": 16,
+      "13": 20,
+      "14": 20,
+      "15": 6,
+      "17": 7,
+      "19": 1,
+      "2": 35036,
+      "22": 1,
+      "26": 1,
+      "3": 7736,
+      "4": 5323,
+      "5": 4040,
+      "6": 437,
+      "7": 1059,
+      "8": 143,
+      "9": 227
+    },
+    "largest_first_k": 26,
+    "unresolved_count": 0,
+    "unresolved_primes": []
+  },
+  "unit_type_i_gate_from_p_plus_one": {
+    "covered_count": 398283,
+    "covered_fraction": 0.5533391406552827,
+    "criterion": "an odd prime divisor d of p+1 with d congruent to 3 modulo 4",
+    "largest_required_k": 1760,
+    "largest_required_k_witness": {
+      "divisor_d": 7043,
+      "k": 1760,
+      "p": 99207697,
+      "s": 14086,
+      "x": 24803685,
+      "y": 349384706910,
+      "z": 34661652139561086270
+    },
+    "not_covered_count": 321498
+  }
+}
