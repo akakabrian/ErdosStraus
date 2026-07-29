@@ -52,3 +52,36 @@ Numerical coverage is recorded only with exact arithmetic, source code, paramete
 ## 2026-07-22 — CI and kernel evidence gate completion
 
 A formal phase is complete only after targeted build, full build, warnings-as-errors where applicable, axiom audit, and forbidden-token audit. Passing a subset of files is not sufficient.
+
+## 2026-07-28 — Complete the `p`-adic factorization split
+
+The fixed Type-II architecture covers only the case in which one factor of
+
+```text
+(dy-px)(dz-px)=p²x²
+```
+
+contains exactly one factor of `p`. Research on the complete offset sequence must also track exponent-zero and exponent-two cases. The exponent-zero case is represented by the Type-I factor-pair equations
+
+```text
+p+d=4abc,
+a+p*b=d*s.
+```
+
+Type-II remains core infrastructure, but it is no longer treated as the only structural language for the two remaining unit fractions.
+
+## 2026-07-28 — Use unbounded sequence gates when they yield global restrictions
+
+The unit Type-I gate `d_k | p+1` can occur at offsets much larger than every tested fixed Type-II window. It is retained because failure across the complete sequence forces every odd prime divisor of `p+1` to be `1 mod4`, a genuine global condition on a hypothetical counterexample.
+
+A family is valuable for its deductive restriction even when it does not cover every prime and its successful offset is unbounded.
+
+## 2026-07-28 — Exact divisor automata allow `1` and partial exponents
+
+For `x=∏q_i^{e_i}`, an exact coprime-divisor automaton must allow, for each prime, no assignment or one exponent `q_i^j` with `1≤j≤e_i` on exactly one side. Either divisor may equal `1`.
+
+Automata that assign only the entire `q_i^{e_i}` component or require both supports to be nonempty are labeled legacy under-approximations and may be used only for regression comparison, never as exact gate classifiers.
+
+## 2026-07-28 — Audit scripts must fail closed on missing tools
+
+A forbidden-token or axiom scan cannot report success after its search executable is missing. Targeted workflows should use runner-standard tools or install explicit dependencies, and each diagnostic step must propagate tool failures after preserving logs.
