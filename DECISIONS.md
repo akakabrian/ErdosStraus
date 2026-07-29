@@ -85,3 +85,24 @@ Automata that assign only the entire `q_i^{e_i}` component or require both suppo
 ## 2026-07-28 — Audit scripts must fail closed on missing tools
 
 A forbidden-token or axiom scan cannot report success after its search executable is missing. Targeted workflows should use runner-standard tools or install explicit dependencies, and each diagnostic step must propagate tool failures after preserving logs.
+
+## 2026-07-28 — Promote the fixed-`a` Type-I divisor hierarchy
+
+Setting `b=1` in the Type-I identity gives the global family
+
+```text
+p+a=d*s,
+p+d=4*a*c,
+1≤a<p,
+0<d<p.
+```
+
+Equivalently, one factors the consecutive additive shifts `p+a` and seeks a proper divisor `d≡-p mod 4a`. This is now the primary new global mechanism because failure gives an infinite hierarchy of exact splitting obstructions on `p+1,p+2,…`, rather than merely excluding one fixed offset.
+
+Type-II, fixed-gate, Mordell, modulo-9240, and automaton results remain infrastructure and may be combined with this hierarchy. They are not discarded.
+
+## 2026-07-28 — Separate dynamic divisor mechanisms from affine residue covers
+
+The strength of the fixed-`a` family comes from the actual factorization of `p+a`. Restricting to fixed pairs `(a,d)` whose moduli divide a finite master modulus produces only an affine congruence sieve.
+
+At modulus `9240`, that sieve leaves every one of the existing 34 Type-II residual classes. Therefore no fixed finite residue cover is inferred from the strong finite fixed-`a` data. Future work should target a local-global incompatibility, a finite-obstruction theorem, or descent in the dynamic divisor data.
