@@ -1,134 +1,154 @@
-# Exact d=11 Prime-Power Component Automaton
+# Corrected exact `d=11` prime-power exponent automaton
 
-## Scope
+## Status and correction
 
-This note studies only the normalized `d=11` Type-II gate. It does not prove
-universal Erdős–Straus coverage.
+The former version of this note and `scripts/d11_component_automaton.py`
+claimed that an exact gate search could assign each entire prime-power
+component `q^e` to the left divisor, the right divisor, or neither.
 
-For
+That claim is **false**. For arbitrary divisors `a,b | x` with
+`gcd(a,b)=1`, a prime power
+
+```text
+q^e || x
+```
+
+may contribute any exponent `q^j`, `1≤j≤e`, to at most one side. In
+addition, either divisor is allowed to equal `1`; an empty prime support is
+valid.
+
+The exact fixed-gate automaton was already implemented correctly in
+`scripts/fixed_gate_automaton.py`. The specialized `d=11` script now delegates
+to that semantics and retains the former model only as a regression oracle.
+
+## Exact criterion
+
+Let
 
 ```text
 x = product q_i^e_i,
+gcd(x,11)=1.
 ```
 
-coprime divisors `a,b | x` are obtained by assigning each full prime-power
-component `q_i^e_i` to `a`, to `b`, or to neither. Splitting one component
-between both sides would violate coprimality. Therefore the finite-state search
-on component residues modulo 11 is exact.
+Start from the residue state `(1,1)`. For each distinct prime `q_i`, and for
+each current state `(A,B)`, make the following choices:
 
-A state is
+1. assign no power of `q_i`;
+2. assign `q_i^j` to the left side for one `1≤j≤e_i`;
+3. assign `q_i^j` to the right side for one `1≤j≤e_i`.
+
+No prime may be assigned to both sides. A state succeeds exactly when
 
 ```text
-(a mod 11, b mod 11, a_nonempty, b_nonempty).
+A+B = 0 mod11.
 ```
 
-For each component residue `r`, the transition assigns `r` to the left side,
-the right side, or neither. The gate succeeds exactly when a reachable state
-has both sides nonempty and
+The reconstructed integers are automatically coprime divisors of `x`.
+Because `11` is odd and coprime to `x`, a successful pair cannot have equal
+values, so it can be ordered as `a<b`.
+
+This is the same exact criterion recorded in
+`docs/fixed-gate-automaton.md`.
+
+## Explicit counterexamples to the former model
+
+### Divisor `1` and a partial exponent
+
+Take
 
 ```text
-a + b = 0 mod 11.
+x = 1849 = 43^2.
 ```
 
-## Dataset result through 10^8
-
-Input population:
+Since `43≡10 mod11`, the pair
 
 ```text
-719,781 primes p <= 100,000,000 with p = 1 mod 24.
+(a,b)=(1,43)
 ```
 
-Only 19,190 rows have first Type-II witness index `k >= 3`, so they survive the
-`d=3`, `d=7`, and `d=11` checks. For every one of these rows, the exact
-automaton applied to
+satisfies `11 | a+b`. The former model sees only the entire component
+`43^2≡1 mod11` and requires both sides to be nonempty, so it incorrectly
+returns failure.
+
+### A genuine consecutive-gate example
+
+Take the residual prime
 
 ```text
-x11 = (p + 11) / 4
+p = 4201.
 ```
 
-returns failure, as it must if the profiler and automaton agree.
-
-This is an independent consistency check of the gate semantics; it is not a
-finite proof of the conjecture.
-
-## Minimal forcing patterns
-
-The pairwise patterns are exactly the additive opposites:
+The first two exact gates fail, while
 
 ```text
-(1,10), (2,9), (3,8), (4,7), (5,6).
+x_2 = (p+11)/4 = 1053 = 3^4*13.
 ```
 
-There are additional genuinely multiplicative three-component patterns. Among
-the simplest are:
+At `d=11`, the pair
 
 ```text
-(1,2,5)
-(2,3,3)
-(2,3,4)
-(2,3,5)
-(3,4,6)
-(3,6,9)
-(4,4,6)
-(5,5,8)
+(a,b)=(9,13)
 ```
 
-For example, `(2,3,3)` succeeds even though no pair of listed components is
-additively opposite: assign the residue-2 component to one side and both
-residue-3 components to the other. The products are `2` and `3*3 = 9`, and
-`2 + 9 = 0 mod 11`. Hand inspection of prime support alone is therefore
-unsafe; complete prime-power components must be tracked.
+is valid because `9+13=22`. It uses `3^2` from the available `3^4`
+factor. The former full-component model sees only `3^4` and `13` and
+incorrectly declares the gate closed.
 
-## Unique maximal support-only obstruction
+## Finite audit through `10^7`
 
-The script exhaustively enumerates subsets of `(Z/11Z)^*` that:
+Reproduction:
 
-1. contain `1`;
-2. are closed under multiplication;
-3. contain no additive-opposite pair.
+```bash
+python scripts/d11_component_automaton.py \
+  --audit-limit 10000000 \
+  --json data/d11-legacy-audit-10m.json
+```
 
-The unique maximal subset is
+Among the residual primes `p≤10^7`:
 
 ```text
-H = {1,3,4,5,9},
+d=3 success:                            47,137
+d=7 success after d=3 failure:          28,606
+reached d=11:                            7,144
+exact d=11 success:                      4,419
+exact d=11 failure:                      2,725
+legacy full-component success:           3,295
+legacy full-component failure:           3,849
+legacy false negatives:                  1,124
 ```
 
-the quadratic-residue subgroup.
+There were no legacy successes rejected by the exact automaton, as expected:
+the legacy assignments form only a subset of the valid exact assignments.
 
-Consequently, the existing quadratic-residue obstruction is maximal among all
-arguments that use only a multiplicatively closed condition on individual
-prime-factor residues. A stronger `d=11` theorem must use prime-power
-exponents, component interactions, or arithmetic relations with another
-offset; enlarging the support-only residue set cannot work.
+The earlier check restricted to rows whose committed first witness had
+`k≥3` did not reveal the defect. Those rows are already known to fail the
+exact `d=11` gate, so any weaker subsearch must also fail. It was not an
+independent validation of exact gate semantics.
 
-## Structural split for residual primes
+## Consequences for prior conclusions
 
-For a residual prime `p = 1 mod 24`, `x11=(p+11)/4` is divisible by 3.
-The formal branch contains explicit trigger theorems for prime divisors
-congruent to `7`, `8`, or `10 mod 11`.
+The following former claims must not be used as exact mathematics:
 
-If every prime factor of `x11` lies in `H`, multiplicative closure keeps every
-divisor residue in `H`, and the absence of additive opposites forces the
-`d=11` gate to fail.
+- full `q^e` components are the only atomic choices;
+- both divisor supports must be nonempty;
+- minimal success patterns of full component residues classify the gate;
+- the full-component state graph is an exact `d=11` obstruction.
 
-The exact automaton shows that the unresolved region is not described merely by
-prime support. Prime-power exponents change component residues, and mixed
-signatures involving residues `2` and `6` can either trigger or fail depending
-on the full multiset.
+Support-only subgroup arguments remain valid when proved independently.
+In particular, if every prime divisor of `x` lies in the quadratic-residue
+subgroup `{1,3,4,5,9}` modulo 11, then every divisor lies there and no
+opposite pair exists. What fails is the assertion that arbitrary inputs can
+be classified by entire component residues alone.
 
-## Next theorem target
+## Current research direction
 
-The useful next target is not a fixed bound on the number of prime factors. It
-is a classification of component-state obstructions compatible simultaneously
-with:
+The corrected automaton reinforces the complete-sequence strategy:
 
-1. failure of the exact `d=3` gate;
-2. failure of the exact `d=7` gate;
-3. `p` lying in one of the 34 modulo-9240 residual classes;
-4. the affine relation `4*x11 = p+11`.
+1. use exact prime-power exponent states at every fixed gate;
+2. retain the proved `d=3` and `d=7` prime-factor characterizations;
+3. combine exact later-gate failure with the new Type-I condition on `p+1`;
+4. seek a finite quotient or local-global invariant that couples several
+   consecutive offsets.
 
-A finite list of all failing multisets cannot exist without extra arithmetic
-constraints, because repetitions of residue `1` give arbitrarily large failing
-multisets. The correct finite object is the automaton state, or a proved finite
-quotient of it. Dataset enumeration remains a falsification and discovery tool,
-not a universal proof.
+Finite automaton output remains a falsification and discovery tool. It does
+not prove universal coverage.
