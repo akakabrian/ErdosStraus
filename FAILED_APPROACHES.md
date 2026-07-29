@@ -81,6 +81,56 @@ The gate is rigorous: an offset `d≡3 mod4` dividing `p+1` produces a strict Ty
 
 Do not reinterpret the finite 55.33% coverage rate as a universal theorem. The value of the gate is the new necessary splitting condition on a hypothetical counterexample and its unbounded-offset character.
 
+### The unit gate plus a short bounded offset block is universal
+
+**Status:** FALSIFIED for the tested bounds.
+
+The claim with offsets `k≤10` is defeated by
+
+```text
+p=496609,
+p+1=2*5*53*937,
+first complete consecutive-offset witness k=12.
+```
+
+The claim with offsets `k≤25` is defeated by
+
+```text
+p=8803369,
+p+1=2*5*880337,
+first complete consecutive-offset witness k=26.
+```
+
+The absence of an unresolved case through `10^8` at `k≤26` is computational only and is not promoted to a universal bound.
+
+### Type-I adds no witness before Type-II
+
+**Status:** FALSIFIED.
+
+For
+
+```text
+p=386401,
+```
+
+the first complete witness occurs at `k=2` in the Type-I branch, while the first Type-II witness occurs at `k=13`. Through `10^8`, 1,590 residual primes acquired an earlier first witness after the complete `p`-adic factor split was searched.
+
+### A fixed finite bound on the fixed-`a` parameter
+
+**Status:** COMPUTATIONAL ONLY.
+
+Every tested residual prime through `10^8` had a fixed-`a` Type-I certificate with first `a≤890`; every tested Mordell-residual prime from `10^8` through `10^9` had first `a≤146`. No theorem bounds `a`, and the isolated `a=890` record gives no monotone law from which a finite reduction follows.
+
+Do not state `a≤890`, `a≤1000`, or any other tested ceiling as a lemma without a proof that reduces all larger targets to the finite computation.
+
+### Fixed-`a` affine families close the modulo-9240 residual set
+
+**Status:** PARTIAL with no gain on the existing hard classes.
+
+Restricting to fixed pairs `(a,d)` with `4a|9240` and `d|9240` covers 190 of the 240 unit residues congruent to `1 mod24`, leaving 50. Every one of the existing 34 Type-II residual classes survives this fixed-`a` affine sieve.
+
+Thus the strong dynamic fixed-`a` coverage is not explained by another finite affine residue cover at modulus `9240`; it depends on the actual divisor structure of `p+a`.
+
 ## Reopening rule
 
 A blocked family may be reopened only when a researcher supplies a materially new construction, invariant, descent, local-global argument, finite-obstruction theorem, or contradiction mechanism—not merely a cleaner restatement of the same gap.
