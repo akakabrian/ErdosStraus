@@ -58,6 +58,29 @@ The proposed shortcut “five distinct prime factors of `x` force opposite copri
 
 The exact state variable is the closure of disjoint prime-power residue assignments, not the number of distinct prime factors. See `docs/fixed-gate-automaton.md` and `scripts/fixed_gate_automaton.py`.
 
+### Entire prime-power components form an exact `d=11` automaton
+
+**Status:** FALSIFIED.
+
+The former specialized `d=11` model assigned only the entire component `q^e` to one side and required both divisor supports to be nonempty. Exact coprime divisors may instead use any exponent `q^j`, `1 ≤ j ≤ e`, on at most one side, and either divisor may equal `1`.
+
+Two explicit counterexamples are:
+
+```text
+x=1849=43^2:       (a,b)=(1,43) works modulo 11;
+p=4201, x_2=1053: (a,b)=(9,13) works modulo 11.
+```
+
+The second example survives the exact `d=3` and `d=7` gates and uses `3^2` from a `3^4` factor. Through `p≤10^7`, the legacy model missed 1,124 exact `d=11` successes after the first two gates failed. See `docs/D11_COMPONENT_AUTOMATON.md` and `data/d11-legacy-audit-10m.json`.
+
+### Unit Type-I divisors of `p+1` prove universal coverage
+
+**Status:** PARTIAL.
+
+The gate is rigorous: an offset `d≡3 mod4` dividing `p+1` produces a strict Type-I decomposition. It does not cover primes for which every odd prime factor of `p+1` is `1 mod4`. Exact computation through `10^8` covered 398,283 of 719,781 residual primes and left 321,498 outside this family.
+
+Do not reinterpret the finite 55.33% coverage rate as a universal theorem. The value of the gate is the new necessary splitting condition on a hypothetical counterexample and its unbounded-offset character.
+
 ## Reopening rule
 
 A blocked family may be reopened only when a researcher supplies a materially new construction, invariant, descent, local-global argument, finite-obstruction theorem, or contradiction mechanism—not merely a cleaner restatement of the same gap.
