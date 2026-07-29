@@ -100,6 +100,19 @@ python scripts/consecutive_gate_profiler.py \
 
 The `--max-k` bound applies only to the comparison of first bounded witnesses. The `p+1` divisor gate searches the complete factorization of `p+1` and may emit much larger offsets.
 
+## `simultaneous_failure_profiler.py`
+
+Restricts to residual primes for which the global unit Type-I gate fails, meaning `p+1` has no odd prime divisor congruent to `3 mod4`. It then records the first complete two-fraction witness in the bounded consecutive sequence.
+
+```bash
+python scripts/simultaneous_failure_profiler.py \
+  --limit 100000000 \
+  --max-k 40 \
+  --json data/simultaneous-failure-summary-100m.json
+```
+
+This is an adversarial test of claims that adjoining the `p+1` gate forces a short offset bound. The committed run falsifies bounds `k≤10` and `k≤25`; it does not promote the observed `k≤26` ceiling to a theorem.
+
 ## `fixed_gate_automaton.py`
 
 Implements the exact coprime-divisor gate for one odd modulus. For each prime power `q^e || x`, it may assign no power or one exponent `q^j`, `1≤j≤e`, to exactly one side. Either resulting divisor may equal `1`.
