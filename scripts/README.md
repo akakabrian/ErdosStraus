@@ -73,6 +73,51 @@ python scripts/typeii_segmented_profiler.py \
 
 This script found the exact record `p=153633769`, `k=31`, disproving the earlier empirical ceiling `k≤26` while leaving the universal conjecture open.
 
+## `consecutive_gate_profiler.py`
+
+Profiles the full consecutive sequence
+
+```text
+m=(p+3)/4,
+x_k=m+k,
+d_k=4k+3.
+```
+
+For each bounded offset it compares the existing Type-II search with the complete factorization
+
+```text
+(d*y-p*x)(d*z-p*x)=p²*x².
+```
+
+It classifies the exponent of `p` in the smaller factor, normalizes exponent-zero hits to Type-I factor pairs, verifies every strict certificate by exact cross multiplication, and separately scans the unbounded unit Type-I gate supplied by prime divisors `d≡3 mod4` of `p+1`.
+
+```bash
+python scripts/consecutive_gate_profiler.py \
+  --limit 100000000 \
+  --max-k 40 \
+  --json data/consecutive-offset-summary-100m.json
+```
+
+The `--max-k` bound applies only to the comparison of first bounded witnesses. The `p+1` divisor gate searches the complete factorization of `p+1` and may emit much larger offsets.
+
+## `fixed_gate_automaton.py`
+
+Implements the exact coprime-divisor gate for one odd modulus. For each prime power `q^e || x`, it may assign no power or one exponent `q^j`, `1≤j≤e`, to exactly one side. Either resulting divisor may equal `1`.
+
+The implementation cross-checks its decision against direct divisor enumeration for a supplied finite input.
+
+## `d11_component_automaton.py`
+
+The name is retained for provenance, but the script now uses the exact prime-power-exponent semantics from `fixed_gate_automaton.py`. It also contains the former full-component model as a labeled legacy under-approximation so false negatives can be reproduced.
+
+```bash
+python scripts/d11_component_automaton.py \
+  --audit-limit 10000000 \
+  --json data/d11-legacy-audit-10m.json
+```
+
+Do not use the legacy model as an exact obstruction classifier.
+
 ## `affine_typeii_sieve.py`
 
 Enumerates two strict-safe affine specializations of the Type-II factor-pair identity:
