@@ -1,0 +1,95 @@
+{
+  "command": "python scripts/d11_component_automaton.py --audit-limit 10000000",
+  "counts": {
+    "d11_exact_failure": 2725,
+    "d11_exact_success": 4419,
+    "d11_legacy_failure": 3849,
+    "d11_legacy_success": 3295,
+    "d3_success": 47137,
+    "d7_success_after_d3_failure": 28606,
+    "reached_d11": 7144
+  },
+  "first_legacy_false_negatives": [
+    {
+      "exact_witness": [9, 13],
+      "factorization_x11": [
+        {"exponent": 4, "prime": 3},
+        {"exponent": 1, "prime": 13}
+      ],
+      "legacy_witness": null,
+      "p": 4201,
+      "x11": 1053,
+      "x3": 1051,
+      "x7": 1052
+    },
+    {
+      "exact_witness": [1, 1143],
+      "factorization_x11": [
+        {"exponent": 2, "prime": 3},
+        {"exponent": 1, "prime": 127}
+      ],
+      "legacy_witness": null,
+      "p": 4561,
+      "x11": 1143,
+      "x3": 1141,
+      "x7": 1142
+    },
+    {
+      "exact_witness": [1, 1473],
+      "factorization_x11": [
+        {"exponent": 1, "prime": 3},
+        {"exponent": 1, "prime": 491}
+      ],
+      "legacy_witness": null,
+      "p": 5881,
+      "x11": 1473,
+      "x3": 1471,
+      "x7": 1472
+    },
+    {
+      "exact_witness": [1, 43],
+      "factorization_x11": [
+        {"exponent": 1, "prime": 3},
+        {"exponent": 1, "prime": 17},
+        {"exponent": 1, "prime": 43}
+      ],
+      "legacy_witness": null,
+      "p": 8761,
+      "x11": 2193,
+      "x3": 2191,
+      "x7": 2192
+    },
+    {
+      "exact_witness": [1, 4443],
+      "factorization_x11": [
+        {"exponent": 1, "prime": 3},
+        {"exponent": 1, "prime": 1481}
+      ],
+      "legacy_witness": null,
+      "p": 17761,
+      "x11": 4443,
+      "x3": 4441,
+      "x7": 4442
+    }
+  ],
+  "legacy_false_negative_count": 1124,
+  "limit": 10000000,
+  "regressions": [
+    {
+      "exact_witness": [1, 43],
+      "factorization": "43^2",
+      "legacy_witness": null,
+      "reason": "divisor 1 and a partial prime-power exponent are valid",
+      "x": 1849
+    },
+    {
+      "exact_witness": [9, 13],
+      "factorization": "3^4*13",
+      "legacy_witness": null,
+      "p": 4201,
+      "reason": "the valid pair (9,13) uses 3^2 from the 3^4 factor",
+      "x11": 1053
+    }
+  ],
+  "scope": "finite exact audit; not a universal proof"
+}
