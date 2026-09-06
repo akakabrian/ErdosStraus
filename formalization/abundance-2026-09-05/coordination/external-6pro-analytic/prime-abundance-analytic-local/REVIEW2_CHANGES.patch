@@ -1,0 +1,751 @@
+--- a/PrimeAbundance/FiniteTransfer.lean
++++ b/PrimeAbundance/FiniteTransfer.lean
+@@ -269,6 +269,7 @@
+   have h := sum_le_sum (fun p hp => sum_le_sum (fun q hq =>
+     pair_second_moment_bound p q (mem_packets_authentic B p hp) (mem_packets_authentic B q hq) A H))
+   apply h.trans
++  apply le_of_eq
+   have hbase : (∑ p∈packets B,∑ q∈packets B,1/(Q p:ℝ)*(1/(Q q:ℝ)))=(mean B)^2 := by
+     simp_rw [←mul_sum,←sum_mul]
+     simp only [mean,pow_two]
+@@ -280,11 +281,22 @@
+   have hbackward : (∑ p∈packets B,∑ q∈packets B,overlapWeight q p)=overlap B := by
+     rw [sum_comm]
+     rfl
+-  simp_rw [sum_add_distrib,←mul_sum]
+-  rw [hbase,hdiag,hforward,hbackward]
+-  simp only [sum_const,nsmul_eq_mul,mul_one]
+-  apply le_of_eq
+-  ring
++  -- Expand the budget pointwise before collecting its four finite sums.
++  -- Unrestricted reverse `mul_sum` rewrites can consume the base sum that
++  -- `hbase` is supposed to rewrite, or leave sums of undispersed addends.
++  calc
++    _ = (H:ℝ)*
++        ((∑ p∈packets B,∑ q∈packets B,1/(Q p:ℝ)*(1/(Q q:ℝ))) +
++         (∑ p∈packets B,∑ q∈packets B,if p=q then 1/(Q p:ℝ) else 0) +
++         (∑ p∈packets B,∑ q∈packets B,overlapWeight p q) +
++         (∑ p∈packets B,∑ q∈packets B,overlapWeight q p)) +
++        ((packets B).card:ℝ)^2 := by
++      simp only [mul_add,mul_sum,sum_add_distrib,sum_const,nsmul_eq_mul,
++        mul_one,pow_two] <;> ring
++    _ = (H:ℝ)*((mean B)^2+mean B+2*overlap B)+
++        ((packets B).card:ℝ)^2 := by
++      rw [hbase,hdiag,hforward,hbackward]
++      ring
+ 
+ lemma packet_card_over_mean (B : ℕ) (hB : 0<B) (hμ : 0<mean B) :
+     ((packets B).card:ℝ)/mean B≤12*(B:ℝ)^8 := by
+--- a/PrimeAbundance/Overlap.lean
++++ b/PrimeAbundance/Overlap.lean
+@@ -255,22 +255,37 @@
+   simp only [diffCover,unpack,Prod.mk.eta,hrs,if_false]
+   simp_rw [←mul_sum]
+   congr 1
+-  rw [sum_comm]
++  -- The summation order is u,v,d. Move d all the way outside; a single
++  -- `sum_comm` would merely interchange the two scale variables.
++  rw [sum_rotate_three]
+   apply sum_congr rfl
+   intro d hd
+-  rw [sum_comm]
+   by_cases hwd : w<d
+   · simp only [hwd,true_and,if_true]
+-    unfold scaleAP scales scaleWeight
+-    rw [mul_sum]
+-    simp_rw [mul_sum]
+-    apply sum_congr rfl
+-    intro u hu
+-    rw [mul_sum]
+-    apply sum_congr rfl
+-    intro v hv
+-    by_cases hdu : d∣qForm r.1 r.2 u <;> by_cases hdv : d∣qForm s.1 s.2 v <;>
+-      simp [hdu,hdv] <;> ring
++    let f : ℕ → ℝ := fun u =>
++      if d∣qForm r.1 r.2 u then scaleWeight r.1 r.2 u else 0
++    let g : ℕ → ℝ := fun v =>
++      if d∣qForm s.1 s.2 v then scaleWeight s.1 s.2 v else 0
++    have hf : scaleAP r.1 r.2 d (B^4) (B^6) = ∑ u∈scales B, f u := by
++      rfl
++    have hg : scaleAP s.1 s.2 d (B^4) (B^6) = ∑ v∈scales B, g v := by
++      rfl
++    rw [hf, hg]
++    calc
++      _ = ∑ u∈scales B, ∑ v∈scales B, (Nat.totient d:ℝ)*(f u*g v) := by
++        apply sum_congr rfl
++        intro u hu
++        apply sum_congr rfl
++        intro v hv
++        by_cases hdu : d∣qForm r.1 r.2 u <;>
++          by_cases hdv : d∣qForm s.1 s.2 v <;>
++            simp [f,g,scaleWeight,hdu,hdv] <;> ring
++      _ = (Nat.totient d:ℝ)*
++          ((∑ u∈scales B, f u)*(∑ v∈scales B, g v)) := by
++        rw [Finset.sum_mul_sum]
++        simp only [Finset.mul_sum]
++      _ = (Nat.totient d:ℝ)*(∑ u∈scales B, f u)*(∑ v∈scales B, g v) := by
++        ring
+   · simp [hwd]
+ 
+ lemma ray_determinant_pos {B : ℕ} {r s : Ray} (hr : r∈rays B) (hs : s∈rays B) (hrs : r≠s) :
+--- a/PrimeAbundance/PrimeProduct.lean
++++ b/PrimeAbundance/PrimeProduct.lean
+@@ -166,7 +166,10 @@
+       primeTupleMass s J * ∑ p∈s, Real.log(p:ℝ)/((p:ℝ)-1) := by
+   classical
+   simp_rw [primeTupleWeight_product, primeTupleNumber_log s J hs]
+-  rw [primeTupleMass_product, ← sum_coe_sort]
++  have hprimeSum : (∑ p∈s, Real.log(p:ℝ)/((p:ℝ)-1)) =
++      ∑ p : s, Real.log((p:ℕ):ℝ)/(((p:ℕ):ℝ)-1) := by
++    rw [Finset.sum_coe_sort]
++  rw [primeTupleMass_product, hprimeSum]
+   apply product_weight_moment
+   · intro p j
+     positivity
+@@ -177,25 +180,44 @@
+     have hr1 : r<1 := by exact (div_lt_one (by linarith)).mpr hpR
+     have hm := finite_geometric_moment_le r hr0 hr1 J
+     have hlog : 0≤Real.log((p:ℕ):ℝ) := Real.log_nonneg hpR.le
+-    have h := mul_le_mul_of_nonneg_right hm hlog
++    have hp0 : (((p:ℕ):ℝ)) ≠ 0 := by linarith
++    have hpm1 : (((p:ℕ):ℝ)-1) ≠ 0 := by linarith
+     have hrid : r/(1-r)=1/(((p:ℕ):ℝ)-1) := by
+       dsimp [r]
+-      field_simp
+-      ring
+-    rw [hrid] at h
+-    simp_rw [mul_assoc, ← sum_mul] at ⊢
+-    dsimp [r] at h
+-    nlinarith
++      field_simp [hp0, hpm1] <;> ring
++    change (∑ j : Fin (J+1), r^j.val *
++      ((j.val:ℝ)*Real.log((p:ℕ):ℝ))) ≤
++        (Real.log((p:ℕ):ℝ)/(((p:ℕ):ℝ)-1)) *
++          (∑ j : Fin (J+1), r^j.val)
++    calc
++      (∑ j : Fin (J+1), r^j.val*((j.val:ℝ)*Real.log((p:ℕ):ℝ))) =
++          (∑ j : Fin (J+1), r^j.val*(j.val:ℝ))*Real.log((p:ℕ):ℝ) := by
++        simp only [Finset.sum_mul, mul_assoc]
++      _ ≤ ((r/(1-r))*(∑ j : Fin (J+1), r^j.val))*Real.log((p:ℕ):ℝ) :=
++        mul_le_mul_of_nonneg_right hm hlog
++      _ = (Real.log((p:ℕ):ℝ)/(((p:ℕ):ℝ)-1))*
++          (∑ j : Fin (J+1), r^j.val) := by
++        rw [hrid]
++        ring
+ 
+ lemma primeTupleMass_times_V (w J : ℕ) :
+     primeTupleMass (smallPrimes w) J * V w =
+       ∏ p ∈ smallPrimes w, (1-(1/(p:ℝ))^(J+1)) := by
+-  rw [primeTupleMass_product, V, ← prod_coe_sort, ← prod_mul_distrib]
++  classical
++  -- Reindex precisely the two prime products. An unrestricted reverse
++  -- `prod_coe_sort` can instead reindex the earlier exponent-tuple product.
++  have hV : V w = ∏ p : smallPrimes w, (1-1/((p:ℕ):ℝ)) := by
++    unfold V
++    rw [Finset.prod_coe_sort]
++  have hresult : (∏ p ∈ smallPrimes w, (1-(1/(p:ℝ))^(J+1))) =
++      ∏ p : smallPrimes w, (1-(1/((p:ℕ):ℝ))^(J+1)) := by
++    rw [Finset.prod_coe_sort]
++  rw [primeTupleMass_product, hV, hresult, ← prod_mul_distrib]
+   apply prod_congr rfl
+   intro p hp
+   rw [Fin.sum_univ_eq_sum_range]
+-  have h := finite_geometric_identity (1/((p:ℕ):ℝ)) J
+-  nlinarith [h]
++  simpa only [mul_comm] using
++    finite_geometric_identity (1/((p:ℕ):ℝ)) J
+ 
+ lemma primeTupleMass_not_too_small (w : ℕ) (hw : 2≤w) :
+     (1:ℝ)/2 ≤ primeTupleMass (smallPrimes w) w * V w := by
+--- a/PrimeAbundance/Sums.lean
++++ b/PrimeAbundance/Sums.lean
+@@ -12,6 +12,22 @@
+ namespace PrimeAbundance.Analytic
+ 
+ noncomputable section
++
++/-- Move the innermost of three independent finite sums to the outside.
++The three index types need not agree; confusing a scale index with a divisor
++index cannot be hidden by using the same ambient type. -/
++lemma sum_rotate_three {α β γ : Type*}
++    (s : Finset α) (t : Finset β) (u : Finset γ) (f : α → β → γ → ℝ) :
++    (∑ a ∈ s, ∑ b ∈ t, ∑ c ∈ u, f a b c) =
++      ∑ c ∈ u, ∑ a ∈ s, ∑ b ∈ t, f a b c := by
++  calc
++    (∑ a ∈ s, ∑ b ∈ t, ∑ c ∈ u, f a b c) =
++        ∑ a ∈ s, ∑ c ∈ u, ∑ b ∈ t, f a b c := by
++      apply sum_congr rfl
++      intro a ha
++      rw [Finset.sum_comm]
++    _ = ∑ c ∈ u, ∑ a ∈ s, ∑ b ∈ t, f a b c := by
++      rw [Finset.sum_comm]
+ 
+ /-- The real harmonic sum, with the zero summand excluded. -/
+ def H (N : ℕ) : ℝ := ∑ n ∈ Icc 1 N, 1 / (n : ℝ)
+--- a/PrimeAbundance/TensorSums.lean
++++ b/PrimeAbundance/TensorSums.lean
+@@ -60,7 +60,8 @@
+       (∏ i : ι, ∑ a : κ, f i a) * ∑ i : ι, b i := by
+   classical
+   simp_rw [mul_sum]
+-  rw [sum_comm, mul_sum]
++  -- `simp_rw` has already distributed the right-hand product over its sum.
++  rw [sum_comm]
+   apply sum_le_sum
+   intro i hi
+   rw [sum_pi_product_coordinate f (g i) i, prod_at_mul_erase _ i]
+@@ -74,7 +75,9 @@
+   induction J with
+   | zero => simp; ring
+   | succ J ih =>
+-    rw [sum_range_succ, mul_add, ih, pow_succ]
++    -- Expand only the new endpoint, not the shorter sum in the induction hypothesis.
++    rw [sum_range_succ (fun j : ℕ => r^j) (J+1), mul_add, ih]
++    rw [pow_succ r (J+1)]
+     ring
+ 
+ lemma finite_geometric_moment_identity (r : ℝ) (J : ℕ) :
+@@ -83,9 +86,12 @@
+   induction J with
+   | zero => simp
+   | succ J ih =>
+-    rw [sum_range_succ, sum_range_succ, mul_add, ih]
++    -- The summands differ. Specify both, so the second rewrite cannot
++    -- expand the shorter weighted sum again.
++    rw [sum_range_succ (fun j : ℕ => (j:ℝ)*r^j) (J+1),
++      sum_range_succ (fun j : ℕ => r^j) (J+1), mul_add, ih]
++    rw [pow_succ r (J+1)]
+     push_cast
+-    rw [pow_succ]
+     ring
+ 
+ lemma finite_geometric_moment_le (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r < 1) (J : ℕ) :
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# Prime abundance: reviewed Lean source candidate
++# Prime abundance: reviewed analytic Lean candidate (v2)
+ 
+ **Status: an end-to-end implementation attempt, repaired after a second source review; NONE of this package has been elaborated or compiled in this conversation.** This is a full implementation attempt, not a claim that Lean will accept it unchanged. Static checks and finite Python tests cannot rule out type errors, failed tactics, incorrect library calls, or substantive proof errors. The verification step is intentionally left for the user's Lean environment.
+ 
+@@ -17,6 +17,28 @@
+ This revision fixes an undefined determinant helper, two incorrect mathlib namespaces, a mismatched totient-sum rewrite, and several other proof-body steps. It also repairs reproduced false accepts in the axiom-name and Lean-version guards and isolates future local compilation in fresh staged source/object trees. The target and `GoalCheck.lean` are unchanged.
+ 
+ Read `REVIEW_FINDINGS.md` and `CHANGES.patch` for the exact findings, changes, and limitations. Preparation tests passed; **no Lean run was performed**. The static audit now checks explicit qualified local reference presence as well as file imports, but it is still not a Lean elaborator.
++
++## Additional source review (v2)
++
++This revision supersedes **`prime-abundance-analytic-reviewed.zip`**. Use a fresh
++output directory. `REVIEW2_FINDINGS.md` documents further source-level corrections
++in the finite product moments, prime-tuple reindexing, different-ray overlap sum,
++and second-moment aggregation. All 279 pre-existing theorem/lemma signatures are
++unchanged; `Target.lean`, `Packets.lean`, `Main.lean`, and `GoalCheck.lean` remain
++byte-for-byte unchanged. `REVIEW_FINDINGS.md` and `CHANGES.patch` are the earlier
++review history, not a report of this revision.
++
++The current changes are in `REVIEW2_CHANGES.patch`, with preparation logs under
++`logs/review2/`. These repairs have **not** been checked by Lean. No claim is made
++that the later run will require only mechanical edits, or that no defects remain.
++
++Run the new finite-identity/known-pattern checks separately with:
++
++```bash
++python3 review2_tests.py --json logs/review2/new-local-run.json
++```
++
++Those Python checks do not execute Lean or validate the asymptotic proof.
+ 
+ ## What statement is being implemented?
+ 
+--- /dev/null
++++ b/REVIEW2_FINDINGS.md
+@@ -0,0 +1,171 @@
++# Additional review of the repaired analytic Lean candidate
++
++## Result and verification boundary
++
++This review found further source-level defects in the previously repaired archive, and rewrote the affected proof bodies. The replacement source has **not** been parsed, elaborated, compiled, or checked by Lean. These are corrections justified by source inspection and elementary identities, not a record of successful Lean repairs. Other API, type, tactic, or mathematical errors may remain.
++
++The input is `prime-abundance-analytic-reviewed.zip`, SHA-256:
++
++```
++d685a613dafdf8593c9963ee1da27c1f989eb9646ddf4358ea30a7b4a13fea0e
++```
++
++The output is `prime-abundance-analytic-reviewed-v2.zip`. It supersedes the input archive. This is another self-review, not an independent referee report.
++
++Five Lean modules were changed: `Sums`, `TensorSums`, `PrimeProduct`, `Overlap`, and `FiniteTransfer`. Seven existing lemma bodies were edited and one finite-sum permutation helper was added. All **279 existing theorem/lemma signatures** match the input after comment/whitespace normalization. `Target.lean`, `Packets.lean`, `Main.lean`, and `GoalCheck.lean` are byte-for-byte unchanged. No desired analytic estimate was changed into a hypothesis, and no proof admission or new axiom was introduced.
++
++The final source still targets:
++
++```lean
++PrimeAbundance.prime_abundance : PrimeAbundance.PrimeAbundanceClaim
++```
++
++No counterexample to the restricted-family mathematical route was established in this review. That is a limited review finding, **not** a certificate of the route. The original full-family overlap estimate and ESC remain outside the claim of this candidate.
++
++## 1. Product-moment distribution: an already-consumed rewrite
++
++In `TensorSums.product_weight_moment`, the old sequence was:
++
++```lean
++simp_rw [mul_sum]
++rw [sum_comm, mul_sum]
++```
++
++The first line distributes multiplication over sums throughout the target, including its right side. After the sum permutation, trying to apply `mul_sum` again does not supply the intended additional transformation: it has already been performed. The revised source removes that second distribution and then applies the coordinate-moment identity.
++
++This is a source-level mismatch, not a counterexample to the true finite product-moment inequality. The new exact tests include empty index sets, an empty coordinate domain, zero coordinate masses, and signed coordinate heights; the lemma only requires the weights to be nonnegative, not the heights.
++
++## 2. Geometric induction: specify the summand and the endpoint
++
++The weighted geometric identity formerly used two unrestricted `sum_range_succ` rewrites. After expanding the new weighted sum, the second rewrite can expand the shorter weighted sum on the left again instead of the unweighted sum on the right. That removes the expression the induction hypothesis is intended to handle.
++
++The revised proof specializes the two rewrites to their distinct summands and to the new endpoint:
++
++```lean
++rw [sum_range_succ (fun j : ℕ => (j:ℝ)*r^j) (J+1),
++    sum_range_succ (fun j : ℕ => r^j) (J+1), mul_add, ih]
++rw [pow_succ r (J+1)]
++```
++
++The unweighted geometric identity also now explicitly expands the exponent `J+2`, rather than using an unrestricted power-successor rewrite that can select a lower power first. This latter change is a precision improvement as well as protection against rewrite-order fragility.
++
++The mathematical identities remain exactly:
++
++```
++(1-r) * sum_{j=0}^J r^j = 1-r^(J+1)
++(1-r) * sum_{j=0}^J j*r^j = r*sum_{j=0}^J r^j -(J+1)*r^(J+1).
++```
++
++## 3. Prime tuples: reindex the intended prime sum/product
++
++`primeTuple_log_moment` used an unrestricted reverse `sum_coe_sort` after expanding the tuple weights. At that point the target has several finite sums; the first is the outer exponent-tuple sum, not the intended prime sum on the right. The analogous unrestricted reverse `prod_coe_sort` in `primeTupleMass_times_V` can act on the earlier product of geometric coordinate masses rather than `V(w)`.
++
++The revised source proves typed equalities `hprimeSum`, `hV`, and `hresult`, explicitly converting exactly the prime-indexed expressions. All products can then be merged over the same subtype of primes.
++
++The one-coordinate moment inequality also now explicitly factors out the nonnegative coefficient `log p`, multiplies the finite geometric-moment bound by it, and uses the exact identity
++
++```
++(1/p)/(1-1/p) = 1/(p-1).
++```
++
++The nonzero denominators are named. This is a proof-body strengthening, not a change to the weak Mertens constant or an invocation of an unproved Mertens input.
++
++## 4. Different-ray overlap: the divisor sum was not outermost
++
++This is the most consequential reindexing defect found. After removing the outer factor two, the old source had a triple sum in the order
++
++```
++sum_u sum_v sum_d F(u,v,d).
++```
++
++One `sum_comm` exchanges only `u` and `v`. The old proof then applied `sum_congr rfl` and introduced an index named `d` as though the divisor sum were already outermost. In general, the scale range and divisor set are different, so that step cannot identify the intended outer indexing sets.
++
++The added helper explicitly proves the permutation
++
++```
++sum_u sum_v sum_d F(u,v,d) = sum_d sum_u sum_v F(u,v,d),
++```
++
++for **three potentially different index types**. It performs an inner interchange followed by the outer interchange. `diffCover_scale_sum` uses that equality before introducing `d`.
++
++The separable scale weights are then factored using an explicit product-of-sums identity, with the `u` weight and `v` weight defined separately. This avoids the old ambiguous distribution order as well.
++
++A small arithmetic diagnostic makes the index distinction visible. With scale indices in `{1,2}`, divisor indices in `{1,2,3}`, and `F(u,v,d)=u+10v+100d`, the correct fiber at `d=1` has sum **466**, while the mistakenly identified fiber at `v=1` has sum **1269**. This is **not** a counterexample to interchanging finite sums (their total sums do agree); it demonstrates that the outer fiber was being identified with the wrong index.
++
++All full divisors, including prime powers, remain in the cover. No factor of two is removed or added to the overlap definition.
++
++## 5. Second-moment aggregation: display the four sums before collecting them
++
++`FiniteTransfer.second_moment_upper` attempted to normalize the summed pair budget with
++
++```lean
++simp_rw [sum_add_distrib, ←mul_sum]
++rw [hbase,hdiag,hforward,hbackward]
++```
++
++That is not a reliable way to expose precisely the four named double sums. Pulling a multiplier outside can expose a previously unexpanded sum of addends; if applied more broadly, reverse distribution can instead consume a base sum before `hbase` is used. The revised source gives an explicit intermediate equality with the base, diagonal, forward-overlap, and reverse-overlap sums all displayed, and normalizes the two sides by **forward** distribution.
++
++It then applies the four named identities. The budget remains
++
++```
++H*(mean^2 + mean + 2*overlap) + packet_count^2.
++```
++
++The diagonal is counted once. The unordered overlap appears twice because both orientations are summed. The residue-count endpoint allowance remains one for each ordered pair, giving `packet_count^2`. No finite bound, positive-mean hypothesis, or subsequent factor-four endpoint term is weakened.
++
++## 6. Source locations
++
++Line numbers are declaration-start locations in the input and output archives.
++
++| File | Declaration | Input line | Revised line |
++|---|---|---:|---:|
++| `TensorSums.lean` | `product_weight_moment` | 55 | 55 |
++| `TensorSums.lean` | `finite_geometric_identity` | 72 | 73 |
++| `TensorSums.lean` | `finite_geometric_moment_identity` | 80 | 83 |
++| `PrimeProduct.lean` | `primeTuple_log_moment` | 162 | 162 |
++| `PrimeProduct.lean` | `primeTupleMass_times_V` | 190 | 203 |
++| `Sums.lean` | `sum_rotate_three` | New | 19 |
++| `Overlap.lean` | `diffCover_scale_sum` | 249 | 249 |
++| `FiniteTransfer.lean` | `second_moment_upper` | 256 | 256 |
++
++## 7. Checks actually executed
++
++The original exact-arithmetic suite passed **20,107 grouped cases**. The prior review suite again passed **18 test methods** and **7,181 additional arithmetic cases**; its axiom-parser tests are synthetic, not actual Lean axiom reports.
++
++The new `review2_tests.py` passed **9 known-pattern/target-lock test methods** and **1,043 exact finite arithmetic cases**:
++
++| Group | Cases |
++|---|---:|
++| Geometric identities, weighted moments, and endpoint recurrences | 168 |
++| Tensor moments, including empty and zero-mass cases | 100 |
++| Prime-tuple product and coordinate-moment identities | 42 |
++| Triple-sum rotations with distinct index types and unequal sizes | 125 |
++| Full-divisor separable overlap identities with unequal scale ranges | 480 |
++| Second-moment budget, diagonal, orientations, and endpoint term | 128 |
++
++All arithmetic in those new tests is rational/integer exact. The prime-tuple moment tests use nonnegative integer coordinate coefficients to test the algebraic multiplication step, not numerical approximations to logarithms. The overlap identity tests permit auxiliary finite ranges; they do not purport to sample the enormous eventual actual-cutoff regime.
++
++The static source hygiene audit, Python syntax checks, and Bash syntax check pass. **No Lean command was run.** The lexical signature comparison is not a type-checker, and the new known-pattern tests do not certify arbitrary rewrite sequences.
++
++Relevant logs are under `logs/review2/`. Previous logs are retained as historical preparation records, not relabeled as results of this review.
++
++## 8. Reproducibility and later acceptance
++
++`REVIEW2_CHANGES.patch` is the patch from the input reviewed package to this revision, excluding package manifests, log snapshots, and the patch itself. A patch-application check reconstructs all included changed files from the input. The refreshed `PACKAGE_MANIFEST.json` records the output files except itself.
++
++The same actual acceptance command applies in a fresh directory:
++
++```bash
++bash verify.sh /absolute/path/to/the/matching/lake-workspace
++```
++
++It must elaborate the complete local source chain and accept the unchanged final goal and real transitive axiom reports. A passing Python suite, a clean source scan, or this review is not a substitute. In particular, **I cannot conclude that no further fixes are needed** from this non-executing review.
++
++## API references checked
++
++The relevant finite distribution and successor identities were checked against the official mathlib **v4.27.0** source, not a claim based on a newer library version:
++
++- `Mathlib/Algebra/BigOperators/Group/Finset/Basic.lean`: `prod_range_succ` and its generated additive version `sum_range_succ`.
++- `Mathlib/Algebra/BigOperators/Ring/Finset.lean`: `sum_mul`, `mul_sum`, and `sum_mul_sum`.
++
++The subtype reindexing changes constrain the intended expression explicitly. This review does not claim that every external API reference in the 24-file development was independently revalidated.
+--- a/REVIEW_BOUNDARY.md
++++ b/REVIEW_BOUNDARY.md
+@@ -6,7 +6,7 @@
+ 
+ The final target file has not been changed. The final theorem does not take the desired analytic bounds as assumptions. The original full-family overlap estimate is not imported under another name.
+ 
+-The second-pass repairs and actual preparation-test results are documented in `REVIEW_FINDINGS.md`. The newly added qualified-local-reference check catches more defects than the first audit, but does not replace elaboration.
++The prior repairs are documented in `REVIEW_FINDINGS.md`; the additional v2 corrections and actual preparation-test results are in `REVIEW2_FINDINGS.md`. The newly added qualified-local-reference check catches more defects than the first audit, but does not replace elaboration.
+ 
+ ## What is not established yet
+ 
+--- a/STATUS.json
++++ b/STATUS.json
+@@ -1,7 +1,7 @@
+ {
+-  "recorded_at_utc": "2026-09-06T05:54:53.729892+00:00",
+-  "source_status": "REVIEWED_END_TO_END_IMPLEMENTATION_ATTEMPT",
+-  "proof_status": "UNCOMPILED_UNVERIFIED_SOURCE_CANDIDATE",
++  "recorded_at_utc": "2026-09-06T06:24:47.060128+00:00",
++  "source_status": "ADDITIONAL_REVIEW_V2_UNVERIFIED_SOURCE_CANDIDATE",
++  "proof_status": "UNCOMPILED_UNVERIFIED_IMPLEMENTATION_ATTEMPT",
+   "lean_run_requested_in_this_turn": false,
+   "lean_executed": false,
+   "lean_elaboration_succeeded": null,
+@@ -13,10 +13,10 @@
+   "target_sha256": "ebf6aa06a5b76c59b1079f357e8bcf596b52a345146bbd2fd213a5c2e79187da",
+   "local_import_closure_complete_by_static_inspection": true,
+   "lean_source_files": 24,
+-  "lean_source_lines": 5406,
++  "lean_source_lines": 5477,
+   "source_declaration_counts": {
+     "theorem": 47,
+-    "lemma": 232,
++    "lemma": 233,
+     "def": 77,
+     "abbrev": 12,
+     "structure": 1
+@@ -39,9 +39,9 @@
+   "python_finite_checks": 20107,
+   "axiom_parser_synthetic_guard_tests": 16,
+   "bash_syntax_check": "PASSED",
+-  "qualification": "Concrete source and verifier defects were repaired. No Lean was executed, and the repairs may still require API/type/tactic or substantive mathematical corrections. Test counts and source bodies are not proof certificates.",
++  "qualification": "Further proof-body defects were found by inspection and rewritten. No Lean command was run. Exact finite checks and source-pattern/signature checks do not establish elaboration or analytic proof correctness; further defects may remain.",
+   "acceptance_gate": "Run verify.sh in the pinned Lean/mathlib environment; require all local modules, locked final target, and actual axiom reports to pass.",
+-  "revision": "SECOND_PASS_SOURCE_REVIEW_AND_REPAIRS",
++  "revision": "ADDITIONAL_SOURCE_REVIEW_V2",
+   "review_is_independent": false,
+   "review_definite_findings": [
+     "Undefined local determinant helper",
+@@ -59,10 +59,28 @@
+   "review_test_methods": 18,
+   "additional_finite_arithmetic_cases": 7181,
+   "current_review_logs": [
+-    "logs/review-static-audit.json",
+-    "logs/review-regressions.json",
+-    "logs/review-original-regression.json",
+-    "logs/review-old-guard-reproductions.json"
++    "logs/review2/static-audit.json",
++    "logs/review2/statement-preservation.json",
++    "logs/review2/edited-declarations.json",
++    "logs/review2/finite-and-pattern-tests.json",
++    "logs/review2/original-regressions.json",
++    "logs/review2/first-review-regressions.json",
++    "logs/review2/patch-verification.json"
+   ],
+-  "original_delivery_metadata": "logs/original-STATUS.json"
++  "original_delivery_metadata": "logs/original-STATUS.json",
++  "source_files_changed_this_review": 5,
++  "existing_lemma_bodies_edited_this_review": 7,
++  "new_finite_sum_helpers": 1,
++  "existing_theorem_signatures_compared": 279,
++  "existing_theorem_signatures_changed": 0,
++  "review2_known_pattern_test_methods": 9,
++  "review2_additional_exact_finite_cases": 1043,
++  "review2_findings": [
++    "Consumed multiplication-over-sum rewrite in product_weight_moment",
++    "Ambiguous geometric induction successor rewrites",
++    "Unconstrained prime sum/product subtype reindexing",
++    "Incorrect scale/scale/divisor summation permutation and factorization",
++    "Fragile second-moment budget aggregation rewritten as an explicit equality"
++  ],
++  "input_review_metadata": "logs/review2/input-STATUS.json"
+ }
+--- /dev/null
++++ b/review2_tests.py
+@@ -0,0 +1,232 @@
++#!/usr/bin/env python3
++"""Second-review regressions; exact finite arithmetic and known source patterns only.
++
++This is NOT a Lean parser, elaborator, or proof checker.  The numeric checks do
++not establish any asymptotic theorem or validate that the edited tactics run.
++"""
++from __future__ import annotations
++import argparse
++from fractions import Fraction as F
++from itertools import product, permutations
++from math import gcd, prod
++from pathlib import Path
++import hashlib
++import json
++import re
++import unittest
++import static_audit
++
++ROOT = Path(__file__).resolve().parent
++
++
++def block(file: str, name: str) -> str:
++    text = static_audit.strip_comments_and_strings((ROOT/'PrimeAbundance'/file).read_text())
++    found = re.search(r'^(?:lemma|theorem)\s+'+re.escape(name)+r'\b', text, re.M)
++    if not found:
++        raise ValueError('Missing declaration '+name)
++    end = re.search(r'^(?:lemma|theorem|def|abbrev)\s+', text[found.end():], re.M)
++    return text[found.start():found.end()+end.start() if end else len(text)]
++
++
++class RepairedSourcePatterns(unittest.TestCase):
++    """These prevent reintroducing specific defects, not arbitrary tactic errors."""
++    def test_no_consumed_distribution_rewrite(self):
++        text = block('TensorSums.lean','product_weight_moment')
++        self.assertIn('simp_rw [mul_sum]',text)
++        self.assertIn('rw [sum_comm]',text)
++        self.assertNotIn('rw [sum_comm, mul_sum]',text)
++
++    def test_geometric_endpoints_are_specialized(self):
++        text = block('TensorSums.lean','finite_geometric_identity')
++        self.assertIn('sum_range_succ (fun j : ℕ => r^j) (J+1)',text)
++        self.assertIn('pow_succ r (J+1)',text)
++
++    def test_weighted_and_unweighted_sums_are_distinct(self):
++        text = block('TensorSums.lean','finite_geometric_moment_identity')
++        self.assertIn('sum_range_succ (fun j : ℕ => (j:ℝ)*r^j) (J+1)',text)
++        self.assertIn('sum_range_succ (fun j : ℕ => r^j) (J+1)',text)
++        self.assertNotIn('sum_range_succ, sum_range_succ',text)
++
++    def test_prime_sum_has_typed_reindexing(self):
++        text = block('PrimeProduct.lean','primeTuple_log_moment')
++        self.assertIn('have hprimeSum',text)
++        self.assertNotIn('← sum_coe_sort',text)
++        self.assertIn('mul_le_mul_of_nonneg_right hm hlog',text)
++
++    def test_prime_products_have_typed_reindexing(self):
++        text = block('PrimeProduct.lean','primeTupleMass_times_V')
++        self.assertIn('have hV',text)
++        self.assertIn('have hresult',text)
++        self.assertNotIn('← prod_coe_sort',text)
++
++    def test_triple_rotation_handles_three_index_types(self):
++        text = block('Sums.lean','sum_rotate_three')
++        self.assertIn('{α β γ : Type*}',text)
++        self.assertIn('∑ c ∈ u, ∑ a ∈ s, ∑ b ∈ t',text)
++        self.assertEqual(text.count('Finset.sum_comm'),2)
++
++    def test_divisor_sum_really_moves_outermost(self):
++        text = block('Overlap.lean','diffCover_scale_sum')
++        self.assertLess(text.index('rw [sum_rotate_three]'),text.index('intro d hd'))
++        self.assertIn('Finset.sum_mul_sum',text)
++        self.assertNotIn('rw [sum_comm]',text)
++
++    def test_pair_budget_explicit_before_aggregation(self):
++        text = block('FiniteTransfer.lean','second_moment_upper')
++        self.assertIn('mul_add,mul_sum,sum_add_distrib',text)
++        self.assertIn('rw [hbase,hdiag,hforward,hbackward]',text)
++        self.assertNotIn('simp_rw [sum_add_distrib,←mul_sum]',text)
++
++    def test_target_and_entrypoint_locks(self):
++        for rel, expected in [
++            ('PrimeAbundance/Target.lean',static_audit.LOCKED_TARGET_SHA256),
++            ('GoalCheck.lean',static_audit.LOCKED_GOALCHECK_SHA256),
++        ]:
++            self.assertEqual(hashlib.sha256((ROOT/rel).read_bytes()).hexdigest(),expected)
++
++
++def divisors(n: int) -> list[int]:
++    if n < 1:
++        return []
++    return [d for d in range(1,n+1) if n%d == 0]
++
++
++def phi(n: int) -> int:
++    return sum(gcd(k,n)==1 for k in range(1,n+1))
++
++
++def exact_checks() -> dict:
++    counts: dict[str,int] = {}
++    count = 0
++    for r in [F(-2),F(-1,3),F(0),F(1,10),F(1,2),F(9,10),F(1),F(2)]:
++        for J in range(21):
++            S=sum((r**j for j in range(J+1)),F())
++            M=sum((j*r**j for j in range(J+1)),F())
++            assert (1-r)*S == 1-r**(J+1)
++            assert (1-r)*M == r*S-(J+1)*r**(J+1)
++            assert sum((r**j for j in range(J+2)),F()) == S+r**(J+1)
++            assert sum((j*r**j for j in range(J+2)),F()) == M+(J+1)*r**(J+1)
++            if 0<=r<1:
++                assert M <= r/(1-r)*S
++            count+=1
++    counts['finite_geometric_identities_and_endpoints']=count
++
++    count=0
++    for dimension in range(5):
++        for size in range(4):
++            for seed in range(5):
++                f=[[F(((i+2)*j+seed)%7,i+j+2) for j in range(size)] for i in range(dimension)]
++                if dimension and seed==4:
++                    f[dimension//2]=[F() for _ in range(size)]
++                g=[[F((i+3)*j-2*seed-1,j+1) for j in range(size)] for i in range(dimension)]
++                masses=[sum(row,F()) for row in f]
++                moments=[sum((a*b for a,b in zip(fr,gr)),F()) for fr,gr in zip(f,g)]
++                b=[moment/mass+F(seed,3) if mass else F() for moment,mass in zip(moments,masses)]
++                assert all(moment<=bound*mass for moment,bound,mass in zip(moments,b,masses))
++                lhs=sum((prod((f[i][x[i]] for i in range(dimension)),start=F(1))*
++                         sum((g[i][x[i]] for i in range(dimension)),F())
++                         for x in product(range(size),repeat=dimension)),F())
++                expanded=sum((moments[i]*prod((masses[j] for j in range(dimension) if i!=j),start=F(1))
++                              for i in range(dimension)),F())
++                rhs=prod(masses,start=F(1))*sum(b,F())
++                assert lhs==expanded and lhs<=rhs
++                count+=1
++    counts['tensor_product_moments_with_empty_and_zero_mass_cases']=count
++
++    count=0
++    for primes in [(),(2,),(3,),(2,3),(2,5),(3,5),(2,3,5)]:
++        V=prod((1-F(1,p) for p in primes),start=F(1))
++        for J in range(6):
++            tuples=list(product(range(J+1),repeat=len(primes)))
++            nums=[prod(p**e for p,e in zip(primes,t)) for t in tuples]
++            assert len(set(nums))==len(nums)
++            mass=sum((F(1,n) for n in nums),F())
++            local=[sum((F(1,p)**j for j in range(J+1)),F()) for p in primes]
++            assert mass==prod(local,start=F(1))
++            assert mass*V==prod((1-F(1,p)**(J+1) for p in primes),start=F(1))
++            # Positive integer coordinate coefficients exercise pulling log(p)
++            # outside the moment; this does not numerically assert a log identity.
++            coeff=[2+i for i in range(len(primes))]
++            moment=sum((F(sum(c*e for c,e in zip(coeff,t)),n) for t,n in zip(tuples,nums)),F())
++            assert moment<=mass*sum((F(c,p-1) for c,p in zip(coeff,primes)),F())
++            count+=1
++    counts['prime_tuple_product_and_coordinate_moment_cases']=count
++
++    count=0
++    for sa in range(5):
++        for sb in range(5):
++            for sc in range(5):
++                # Deliberately distinct index types and unbalanced ranges.
++                A=[('u',i) for i in range(sa)]
++                B=[f'v{j}' for j in range(sb)]
++                C=[10+k for k in range(sc)]
++                def f(a,b,c):
++                    i=a[1]; j=int(b[1:]); k=c-10
++                    return F((i+1)**2+7*(j+1)+31*(k+1)+(i-j)*(k+2),1+i+j+k)
++                lhs=sum((f(a,b,c) for a in A for b in B for c in C),F())
++                rhs=sum((f(a,b,c) for c in C for a in A for b in B),F())
++                assert lhs==rhs
++                count+=1
++    counts['three_sum_rotations_with_distinct_index_types']=count
++    # A numeric witness that the prematurely introduced outer variable would
++    # describe a different per-index expression even when all types are naturals.
++    scales=(1,2); ds=(1,2,3)
++    def witness(u,v,d): return u+10*v+100*d
++    correct_d1=sum(witness(u,v,1) for u in scales for v in scales)
++    wrong_v1=sum(witness(u,1,d) for u in scales for d in ds)
++    assert (correct_d1,wrong_v1)==(466,1269)
++
++    count=0
++    ranges=[((),()),((1,),()),((1,2),(3,4,5)),(tuple(range(1,10)),tuple(range(3,12)))]
++    rays=[(1,2),(1,3),(2,3),(2,5),(3,5),(4,5)]
++    for (a,b),(c,e) in permutations(rays,2):
++        D=abs(a*e-c*b)
++        assert D>0
++        for w in (0,1,2,4):
++            for U,V in ranges:
++                lhs=2*sum((F(phi(d),(12*a*b*u-1)*(12*c*e*v-1))
++                           for u in U for v in V for d in divisors(D)
++                           if w<d and (12*a*b*u-1)%d==0 and (12*c*e*v-1)%d==0),F())
++                rhs=2*sum((phi(d)*sum((F(1,12*a*b*u-1) for u in U if (12*a*b*u-1)%d==0),F())*
++                           sum((F(1,12*c*e*v-1) for v in V if (12*c*e*v-1)%d==0),F())
++                           for d in divisors(D) if w<d),F())
++                assert lhs==rhs
++                count+=1
++    counts['full_divisor_separable_overlap_identities']=count
++
++    count=0
++    for m in range(8):
++        for H in (0,1,7,100):
++            for seed in range(4):
++                a=[F(i+1,11+seed+i) for i in range(m)]
++                o=[[F(((i+1)*(j+2)+seed)%5,3+i+j) if i<j else F() for j in range(m)] for i in range(m)]
++                lhs=sum((H*(a[i]*a[j]+(a[i] if i==j else 0)+o[i][j]+o[j][i])+1
++                         for i in range(m) for j in range(m)),F())
++                mu=sum(a,F()); lam=sum((v for row in o for v in row),F())
++                rhs=H*(mu**2+mu+2*lam)+m**2
++                assert lhs==rhs
++                count+=1
++    counts['second_moment_budget_diagonal_orientations_and_endpoint']=count
++    return {'exact_arithmetic_cases':sum(counts.values()),'cases_by_group':counts,
++            'wrong_outer_variable_witness':{'correct_divisor_1_fiber':correct_d1,'incorrect_scale_1_fiber':wrong_v1},
++            'lean_executed':False,'asymptotic_theorem_tested':False,
++            'qualification':'Finite identities and known-pattern checks only; not Lean verification.'}
++
++
++def main() -> int:
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--json',type=Path)
++    args=parser.parse_args()
++    suite=unittest.defaultTestLoader.loadTestsFromTestCase(RepairedSourcePatterns)
++    result=unittest.TextTestRunner(verbosity=2).run(suite)
++    if not result.wasSuccessful(): return 1
++    report=exact_checks()
++    report['source_pattern_test_methods']=result.testsRun
++    report['passed']=True
++    if args.json:
++        args.json.parent.mkdir(parents=True,exist_ok=True)
++        args.json.write_text(json.dumps(report,indent=2)+'\n')
++    print(json.dumps(report,indent=2))
++    return 0
++
++if __name__=='__main__': raise SystemExit(main())

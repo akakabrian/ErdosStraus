@@ -1,0 +1,1125 @@
+--- a/PROOF_MAP.md
++++ b/PROOF_MAP.md
+@@ -1,6 +1,6 @@
+ # Proof-source map and exact mathematical obligations
+ 
+-Every result below has a source body in this package. This is a dependency map for an **uncompiled implementation attempt**, not a list of machine-verified facts.
++The entries below describe the intended source dependency chain of an **uncompiled implementation attempt**, not machine-verified facts. The second source review found and repaired a missing determinant helper, wrong API namespaces, and other proof-body defects. See `REVIEW_FINDINGS.md`; body presence and a complete import graph do not establish elaboration.
+ 
+ ## 1. Final target and witness arithmetic
+ 
+@@ -13,7 +13,7 @@
+ (4be)(36acuv) - 1 = QQ' + Q + Q'.
+ ```
+ 
+-The second identity gives an inverse of `4be` modulo every common divisor of `Q,Q'`. Thus compatibility is equivalent to `d | D` at the **full modulus d**, with no squarefree reduction. Distinct reduced rays have nonzero determinant, of absolute value below `B²`.
++The second identity gives an inverse of `4be` modulo every common divisor of `Q,Q'`. Thus compatibility is equivalent to `d | D` at the **full modulus d**, with no squarefree reduction. Distinct reduced rays have nonzero determinant, of absolute value below `B²`. The previously missing `Late.determinant_ne_zero` is now explicitly proved in `Arithmetic.lean` from `reduced_ray_unique`.
+ 
+ ## 2. Finite analytic foundations
+ 
+--- a/PrimeAbundance/AnalyticBounds.lean
++++ b/PrimeAbundance/AnalyticBounds.lean
+@@ -121,7 +121,7 @@
+   have ht : Tendsto (fun n:ℕ => ((n+1:ℕ):ℝ)) atTop atTop := by
+     simpa only [Nat.cast_add,Nat.cast_one] using
+       (tendsto_natCast_atTop_atTop.atTop_add (tendsto_const_nhds (x := (1:ℝ))))
+-  have h := (Real.isLittleO_log_rpow_rpow_atTop (2:ℝ) (by norm_num : (0:ℝ)<1)).comp_tendsto ht
++  have h := (_root_.isLittleO_log_rpow_rpow_atTop (2:ℝ) (by norm_num : (0:ℝ)<1)).comp_tendsto ht
+   have hb := h.bound hε
+   filter_upwards [hb] with n hn
+   simpa only [Function.comp_apply,Real.rpow_natCast,Real.rpow_one,
+--- a/PrimeAbundance/Arithmetic.lean
++++ b/PrimeAbundance/Arithmetic.lean
+@@ -83,6 +83,18 @@
+   subst c
+   have hbe : b = e := (Nat.eq_of_mul_eq_mul_left ha h).symm
+   exact ⟨rfl, hbe⟩
++
++/-- Distinct positive primitive rays have a nonzero integer determinant. -/
++theorem determinant_ne_zero (a b c e : ℕ)
++    (ha : 0 < a) (hc : 0 < c)
++    (hab : Nat.Coprime a b) (hce : Nat.Coprime c e)
++    (hne : (a,b) ≠ (c,e)) :
++    (a:ℤ)*(e:ℤ)-(c:ℤ)*(b:ℤ) ≠ 0 := by
++  intro hzero
++  have hcross : a*e = c*b := by
++    exact_mod_cast (sub_eq_zero.mp hzero)
++  obtain ⟨hac,hbe⟩ := reduced_ray_unique a b c e ha hc hab hce hcross
++  exact hne (Prod.ext hac hbe)
+ 
+ theorem label_dvd_row_sq (a b u : ℕ) : label a u ∣ (row a b u) ^ 2 := by
+   refine ⟨3 * b ^ 2 * u, ?_⟩
+--- a/PrimeAbundance/DivisorKernel.lean
++++ b/PrimeAbundance/DivisorKernel.lean
+@@ -19,7 +19,8 @@
+ 
+ lemma linearQ_pos {c u : ℕ} (hc : 2≤c) (hu : 0<u) : 0<linearQ c u := by
+   unfold linearQ
+-  nlinarith
++  have hlarge : 2≤c*u := by nlinarith
++  omega
+ 
+ lemma linearQ_cast {c u : ℕ} (hc : 2≤c) (hu : 0<u) :
+     (linearQ c u:ℝ)=(c:ℝ)*(u:ℝ)-1 := by
+@@ -224,6 +225,7 @@
+     have hzI := mem_Ioc.mp (mem_filter.mp hz).1
+     have hvq := hindex v hv
+     have hzq := hindex z hz
++    rw [heq] at hvq
+     omega
+   have hterm : ∀ v∈s,1/(linearQ c v:ℝ)≤1/((c:ℝ)*(d:ℝ)*(f v:ℝ)) := by
+     intro v hv
+@@ -243,7 +245,7 @@
+     apply one_div_le_one_div_of_le (by positivity)
+     rw [hid]
+     push_cast
+-    positivity
++    exact le_add_of_nonneg_left (Nat.cast_nonneg (linearQ c u))
+   rw [←sum_filter]
+   calc
+     (∑ v∈s,1/(linearQ c v:ℝ))≤∑ v∈s,1/((c:ℝ)*(d:ℝ)*(f v:ℝ)) := sum_le_sum hterm
+--- a/PrimeAbundance/DivisorMoments.lean
++++ b/PrimeAbundance/DivisorMoments.lean
+@@ -40,7 +40,8 @@
+     have hq : n/d=n'/d := by simpa using congrArg Sigma.snd h
+     have hnd := Nat.div_mul_cancel (Nat.mem_divisors.mp (mem_sigma.mp hp).2).1
+     have hn'd := Nat.div_mul_cancel (Nat.mem_divisors.mp (mem_sigma.mp hp').2).1
+-    have hn : n=n' := by nlinarith
++    rw [hq] at hnd
++    have hn : n=n' := hnd.symm.trans hn'd
+     subst n'
+     rfl
+   · rintro ⟨d,m⟩ hp
+@@ -84,7 +85,7 @@
+   | succ e ih =>
+     rw [sum_range_succ, ih]
+     have h := Nat.choose_succ_succ (e+k+1) k
+-    convert h.symm using 1 <;> congr 1 <;> omega
++    simpa only [Nat.add_assoc,Nat.add_left_comm,Nat.add_comm] using h.symm
+ 
+ lemma dk_prime_pow (k p e : ℕ) (hp : Nat.Prime p) :
+     dk (k+1) (p^e) = (e+k).choose k := by
+--- a/PrimeAbundance/FiniteTransfer.lean
++++ b/PrimeAbundance/FiniteTransfer.lean
+@@ -271,7 +271,7 @@
+   apply h.trans
+   have hbase : (∑ p∈packets B,∑ q∈packets B,1/(Q p:ℝ)*(1/(Q q:ℝ)))=(mean B)^2 := by
+     simp_rw [←mul_sum,←sum_mul]
+-    rfl
++    simp only [mean,pow_two]
+   have hdiag : (∑ p∈packets B,∑ q∈packets B,if p=q then 1/(Q p:ℝ) else 0)=mean B := by
+     apply sum_congr rfl
+     intro p hp
+--- a/PrimeAbundance/GlobalAbundance.lean
++++ b/PrimeAbundance/GlobalAbundance.lean
+@@ -191,7 +191,8 @@
+   have hstart : (delayedStart n:ℝ)=1+12*((2^n:ℕ):ℝ)^8 := by
+     simp only [delayedStart,Nat.cast_add,Nat.cast_mul,Nat.cast_pow,Nat.cast_one,Nat.cast_ofNat]
+     ring
+-  have hA1 : (1:ℝ)≤1+12*((2^n:ℕ):ℝ)^8 := by positivity
++  have hA1 : (1:ℝ)≤1+12*((2^n:ℕ):ℝ)^8 :=
++    le_add_of_nonneg_right (by positivity)
+   have hA : 1+12*((2^n:ℕ):ℝ)^8≤13*((2^n:ℕ):ℝ)^8 := by linarith
+   have hA2 := pow_le_pow_left₀ (by positivity : (0:ℝ)≤1+12*((2^n:ℕ):ℝ)^8) hA 2
+   have hn3 : n^3≤(2^n)^8 := by
+@@ -313,7 +314,7 @@
+       atTop (nhds (0:ℝ)) := by
+   have ht : Tendsto (fun N:ℕ => Real.log(N:ℝ)) atTop atTop :=
+     Real.tendsto_log_atTop.comp tendsto_natCast_atTop_atTop
+-  have h := (Real.isLittleO_log_rpow_rpow_atTop (3:ℝ) (by norm_num : (0:ℝ)<2)).tendsto_div_nhds_zero
++  have h := (_root_.isLittleO_log_rpow_rpow_atTop (3:ℝ) (by norm_num : (0:ℝ)<2)).tendsto_div_nhds_zero
+   have hc := h.comp ht
+   simpa only [Function.comp_apply,Real.rpow_natCast] using hc
+ 
+--- a/PrimeAbundance/Overlap.lean
++++ b/PrimeAbundance/Overlap.lean
+@@ -95,21 +95,21 @@
+   have hsum : (∑ d∈g.divisors,if 1<d then (Nat.totient d:ℝ) else 0)=(g:ℝ)-1 := by
+     have he : (∑ d∈g.divisors,(Nat.totient d:ℝ))=(g:ℝ) := by
+       exact_mod_cast Nat.sum_totient g
+-    have hsplit : (∑ d∈g.divisors,(Nat.totient d:ℝ))=
+-        1+(∑ d∈g.divisors,if 1<d then (Nat.totient d:ℝ) else 0) := by
+-      rw [←sum_erase_add _ _ h1]
+-      simp only [Nat.totient_one,Nat.cast_one]
+-      have heq : (∑ d∈g.divisors.erase 1,(Nat.totient d:ℝ))=
+-          ∑ d∈g.divisors,if 1<d then (Nat.totient d:ℝ) else 0 := by
+-        rw [sum_erase_eq_sub (f := fun d => if 1<d then (Nat.totient d:ℝ) else 0) h1]
+-        simp only [lt_self_iff_false,if_false,sub_zero]
+-        apply sum_congr rfl
+-        intro d hd
+-        have hd0 := Nat.pos_of_mem_divisors (mem_erase.mp hd).2
+-        have hd1 := (mem_erase.mp hd).1
+-        simp [show 1<d by omega]
+-      rw [heq]
+-      ring
++    -- Split off the divisor one pointwise before summing. All divisors remain present.
++    have hpoint : ∀ d∈g.divisors, (Nat.totient d:ℝ) =
++        (if d=1 then (1:ℝ) else 0) +
++          (if 1<d then (Nat.totient d:ℝ) else 0) := by
++      intro d hd
++      have hd0 := Nat.pos_of_mem_divisors hd
++      by_cases hd1 : d=1
++      · subst d
++        norm_num
++      · have hdgt : 1<d := by omega
++        simp only [hd1,hdgt,if_false,if_true,zero_add]
++    have hsplit := sum_congr rfl hpoint
++    have hone : (∑ d∈g.divisors,if d=1 then (1:ℝ) else 0)=1 := by
++      simp [h1]
++    rw [sum_add_distrib,hone,he] at hsplit
+     linarith
+   rw [hsum]
+   have hgR : (2:ℝ)≤(g:ℝ) := by exact_mod_cast hg
+@@ -172,7 +172,7 @@
+           Nat.sub_add_cancel (show 1≤12*a*b*v by positivity)]
+       simp only [sameCover,diffCover,unpack,Prod.mk.injEq,and_self,if_pos,hrs,huv,true_and,add_zero]
+     · have hDne : (a:ℤ)*(e:ℤ)-(c:ℤ)*(b:ℤ)≠0 :=
+-        Late.determinant_ne_zero a b c e ha hb hc he hcop hcop' hrs
++        Late.determinant_ne_zero a b c e ha hc hcop hcop' hrs
+       have hDpos : 0<gap (a*e) (c*b) := by
+         apply gap_pos
+         intro h
+@@ -364,7 +364,13 @@
+       positivity
+   have hsum := sum_le_sum hlocal
+   have hm := mul_le_mul_of_nonneg_left hsum (by norm_num : (0:ℝ)≤2)
+-  simpa only [sum_const,nsmul_eq_mul,tau,den] using hm
++  have hright : 2*(∑ _d∈(gap (r.1*s.2) (s.1*r.2)).divisors,
++        16*(n:ℝ)^2/(w:ℝ)/den) =
++      32*(n:ℝ)^2/(w:ℝ)*((tau (gap (r.1*s.2) (s.1*r.2)):ℝ)/den) := by
++    simp only [sum_const,nsmul_eq_mul,tau]
++    ring
++  rw [hright] at hm
++  exact hm
+ 
+ /-- Product-factor regrouping. The fiber has at most τ(x)τ(y) factorizations. -/
+ lemma rayEnergy_box_le (B : ℕ) :
+@@ -459,7 +465,7 @@
+     intro r hr
+     obtain ⟨ha,hab,hbB,hcop⟩ := ray_membership hr
+     have hb := ha.trans hab
+-    have h := gcdKernel_delayed n (12*r.1*r.2) (by positivity) (hdelay r hr)
++    have h := gcdKernel_delayed n (12*r.1*r.2) (by nlinarith [Nat.mul_pos ha hb]) (hdelay r hr)
+     have hden : (r.1:ℝ)^2*(r.2:ℝ)^2≤((12*r.1*r.2:ℕ):ℝ)^2 := by
+       push_cast
+       nlinarith [sq_nonneg ((r.1:ℝ)*(r.2:ℝ))]
+@@ -475,7 +481,7 @@
+       _ = (∑ a∈Icc 1 (2^n),1/(a:ℝ)^2)^2 := by
+         rw [pairBox,sum_product]
+         simp_rw [←one_div_mul_one_div,←mul_sum,←sum_mul]
+-        rfl
++        simp only [pow_two]
+       _ ≤ 4 := by
+         have hb := reciprocal_sq_sum_le_two (2^n)
+         have h0 : (0:ℝ)≤∑ a∈Icc 1 (2^n),1/(a:ℝ)^2 := by positivity
+--- a/PrimeAbundance/RayMass.lean
++++ b/PrimeAbundance/RayMass.lean
+@@ -32,7 +32,7 @@
+     intro a b
+     rw [one_div_mul_one_div]
+   simp_rw [hterm, ← mul_sum, ← sum_mul]
+-  rfl
++  simp only [H, pow_two]
+ 
+ /-- Gcd reduction maps each pair injectively to a scale and a primitive pair. -/
+ lemma harmonic_square_le_two_coprimeMass (B : ℕ) : (H B)^2 ≤ 2*coprimeMass B := by
+@@ -67,9 +67,13 @@
+     have hb := Nat.div_mul_cancel (Nat.gcd_dvd_right a b)
+     have hc := Nat.div_mul_cancel (Nat.gcd_dvd_left c d)
+     have hd := Nat.div_mul_cancel (Nat.gcd_dvd_right c d)
+-    apply Prod.ext <;> simp only [Prod.mk.injEq]
+-    · nlinarith
+-    · nlinarith
++    have ha' : a=c := by
++      rw [haq,hg] at ha
++      exact ha.symm.trans hc
++    have hb' : b=d := by
++      rw [hbq,hg] at hb
++      exact hb.symm.trans hd
++    exact Prod.ext ha' hb' 
+   have hweight : ∀ p∈pairBox B, pairWeight p=wt (f p) := by
+     rintro ⟨a,b⟩ hp
+     obtain ⟨ha,haB,hb,hbB⟩ := mem_pairBox.mp hp
+--- a/PrimeAbundance/ScaleSums.lean
++++ b/PrimeAbundance/ScaleSums.lean
+@@ -24,7 +24,8 @@
+ lemma qForm_pos {a b u : ℕ} (ha : 0<a) (hb : 0<b) (hu : 0<u) : 0<qForm a b u := by
+   dsimp [qForm]
+   have h : 1≤a*b*u := by positivity
+-  nlinarith
++  have hlarge : 2≤12*a*b*u := by nlinarith
++  omega
+ 
+ lemma qForm_cast {a b u : ℕ} (ha : 0<a) (hb : 0<b) (hu : 0<u) :
+     (qForm a b u:ℝ)=12*(a:ℝ)*(b:ℝ)*(u:ℝ)-1 := by
+@@ -162,7 +163,7 @@
+     rw [scaleAP,←sum_filter]
+   have hcount : (s.card:ℝ)≤(U:ℝ)/(d:ℝ)+1 := by
+     simpa only [qForm,show U+U=2*U by omega] using
+-      linear_hits_Ioc_le (12*a*b) d U U (by positivity) hd
++      linear_hits_Ioc_le (12*a*b) d U U (by nlinarith [Nat.mul_pos ha hb]) hd
+   have hcount' : (s.card:ℝ)≤2*(U:ℝ)/(d:ℝ) := by
+     have hdu : (1:ℝ)≤(U:ℝ)/(d:ℝ) := (le_div_iff₀ (by exact_mod_cast hd)).mpr
+       (by simpa using (show (d:ℝ)≤(U:ℝ) by exact_mod_cast hdU))
+@@ -214,7 +215,7 @@
+   have hlen0 : 0<sieveLength w := by dsimp [sieveLength]; positivity
+   have hUp : 0<U := hlen0.trans_le hU
+   let s := roughScales (12*a*b) U U w
+-  have hsieve := (sieve_relative (12*a*b) U U w (by positivity) hw hU).1
++  have hsieve := (sieve_relative (12*a*b) U U w (by nlinarith [Nat.mul_pos ha hb]) hw hU).1
+   have hc : (U:ℝ)*V w/2≤(s.card:ℝ) := by
+     have hm := mul_le_mul_of_nonneg_left (V_le_Vcoeff (12*a*b) w) (by positivity : (0:ℝ)≤(U:ℝ))
+     dsimp [s]
+@@ -255,7 +256,15 @@
+     have hU := hlen.trans (Nat.le_mul_of_pos_left ((2^n)^4) (by positivity : 0<2^j))
+     simpa only [pow_succ,mul_assoc,mul_left_comm,mul_comm] using
+       keptScale_block_lower a b (2^j*(2^n)^4) w ha hb hw hU
+-  simpa only [sum_const,card_range,nsmul_eq_mul,Nat.cast_mul,Nat.cast_ofNat] using h
++  have hleft : (∑ _j∈range (2*n),V w/(48*(a:ℝ)*(b:ℝ))) =
++      (n:ℝ)*V w/(24*(a:ℝ)*(b:ℝ)) := by
++    simp only [sum_const,card_range,nsmul_eq_mul,Nat.cast_mul,Nat.cast_ofNat]
++    have haR : (a:ℝ)≠0 := by positivity
++    have hbR : (b:ℝ)≠0 := by positivity
++    field_simp
++    ring
++  rw [hleft] at h
++  exact h
+ 
+ /-- Reindex the actual selected packet sum by rays and scales, with no duplicates. -/
+ lemma mean_eq_ray_scale (B : ℕ) (hB : 2≤B) :
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,6 @@
+-# Prime abundance: end-to-end Lean source candidate
++# Prime abundance: reviewed Lean source candidate
+ 
+-**Status: all stages have proof-source implementations; NONE of this package has been elaborated or compiled in this conversation.** This is a full implementation attempt, not a claim that Lean will accept it unchanged. Static checks and finite Python tests cannot rule out type errors, failed tactics, incorrect library calls, or substantive proof errors. The verification step is intentionally left for the user's Lean environment.
++**Status: an end-to-end implementation attempt, repaired after a second source review; NONE of this package has been elaborated or compiled in this conversation.** This is a full implementation attempt, not a claim that Lean will accept it unchanged. Static checks and finite Python tests cannot rule out type errors, failed tactics, incorrect library calls, or substantive proof errors. The verification step is intentionally left for the user's Lean environment.
+ 
+ The final declaration is present:
+ 
+@@ -11,6 +11,12 @@
+ It is in `PrimeAbundance/Main.lean`. It does **not** accept mean estimates, overlap estimates, a sieve theorem, or the final conclusion as hypotheses. The imported source chain contains the proposed derivations of those ingredients.
+ 
+ This package supersedes `prime-abundance-formal-work.zip`. Use a new directory rather than merging it into the earlier partial directory. It does not use the earlier composite-root-count draft.
++
++## Second-pass revision
++
++This revision fixes an undefined determinant helper, two incorrect mathlib namespaces, a mismatched totient-sum rewrite, and several other proof-body steps. It also repairs reproduced false accepts in the axiom-name and Lean-version guards and isolates future local compilation in fresh staged source/object trees. The target and `GoalCheck.lean` are unchanged.
++
++Read `REVIEW_FINDINGS.md` and `CHANGES.patch` for the exact findings, changes, and limitations. Preparation tests passed; **no Lean run was performed**. The static audit now checks explicit qualified local reference presence as well as file imports, but it is still not a Lean elaborator.
+ 
+ ## What statement is being implemented?
+ 
+@@ -87,7 +93,7 @@
+ bash verify.sh
+ ```
+ 
+-The verifier checks the toolchain and mathlib revision, checks that tracked mathlib sources are unmodified, locks the target hash, and computes the local import order. It then recompiles every local source in the final goal's import closure into a **new temporary directory**. It does not count old local `.olean` files as success. Cached upstream mathlib dependencies are allowed; this is not a source rebuild of all of mathlib.
++The verifier checks the exact release token and mathlib revision, checks that tracked mathlib sources are unmodified, locks the target and `GoalCheck.lean` hashes, records execution-support hashes, and computes the local import order. It copies only the audited Lean sources to a clean temporary staging tree and recompiles every local source in the final goal's import closure into a **separate new temporary object directory**. Relative Lake search paths are resolved against the matching workspace before entering the staging tree. It does not count old local `.olean` files as success. Cached upstream mathlib dependencies are allowed; this is not a source rebuild of all of mathlib.
+ 
+ `GoalCheck.lean` checks the final declaration's type and prints axiom dependencies for the final theorem, both analytic/density outputs, and the finite transfer. The audit allows only `propext`, `Classical.choice`, and `Quot.sound`, and rejects missing/duplicate reports, `sorryAx`, or other axioms. A partial module build cannot satisfy the final-goal gate.
+ 
+@@ -103,10 +109,11 @@
+ python3 static_audit.py --json logs/static-audit.json
+ python3 regression_tests.py --json logs/finite-regression.json
+ python3 check_axioms.py --self-test
++python3 review_tests.py --json logs/review-regressions.json
+ bash -n verify.sh
+ ```
+ 
+-The static audit checks source hygiene, declaration-body presence, target integrity, local-import closure, and limited delimiter consistency. It is **not** a Lean parser or proof checker.
++The static audit checks source hygiene, declaration-body presence, target/check-file integrity, local-import closure, selected qualified-local-name availability, and limited delimiter consistency. It is **not** a Lean parser or proof checker.
+ 
+ The finite regression tests use exact Python integers and fractions. They test residue errors, Bonferroni remainders, the long-interval sieve, divisor inequalities, harmonic ray mass, gcd kernels, determinant identities, and strict prime Type-II decoding. They use auxiliary finite cutoffs rather than pretending to sample the enormous eventual actual-cutoff regime. They do not prove an asymptotic result.
+ 
+--- a/REVIEW_BOUNDARY.md
++++ b/REVIEW_BOUNDARY.md
+@@ -2,9 +2,11 @@
+ 
+ ## What exists
+ 
+-There are complete source bodies, rather than just proposed signatures, for the finite sieve, weak prime-product bound, harmonic ray mass, divisor-moment argument, same/different-ray overlap bounds, concrete eventual analytic estimates, strict decoding, finite transfer, elementary prime count, and final quantitative/density declarations.
++There are proposed source bodies, rather than just signatures, for the finite sieve, weak prime-product bound, harmonic ray mass, divisor-moment argument, same/different-ray overlap bounds, concrete eventual analytic estimates, strict decoding, finite transfer, elementary prime count, and final quantitative/density declarations.
+ 
+ The final target file has not been changed. The final theorem does not take the desired analytic bounds as assumptions. The original full-family overlap estimate is not imported under another name.
++
++The second-pass repairs and actual preparation-test results are documented in `REVIEW_FINDINGS.md`. The newly added qualified-local-reference check catches more defects than the first audit, but does not replace elaboration.
+ 
+ ## What is not established yet
+ 
+--- /dev/null
++++ b/REVIEW_FINDINGS.md
+@@ -0,0 +1,173 @@
++# Second-pass review and repairs
++
++## Verdict and scope
++
++This second pass found concrete source and verification-harness defects. They have been repaired in this candidate. **No Lean parser, elaborator, compiler, or kernel was run.** The revised source is not a verified proof, and the repairs themselves still require elaboration.
++
++The original target file and the exact final type/axiom check file are byte-for-byte unchanged. No desired analytic estimate was converted into a hypothesis, no numerical theorem bound was weakened, and no admission or new axiom was added. The final source declaration remains:
++
++```lean
++PrimeAbundance.prime_abundance : PrimeAbundance.PrimeAbundanceClaim
++```
++
++The review covered the supplied 24-file source chain, the proof map, the restricted-family argument, and the build/axiom harness. External checking was limited to relevant official mathlib API declarations, especially the pinned v4.27.0 asymptotics namespace. This is a self-review, not an independent referee report.
++
++I found no mathematical counterexample to the abundance conclusion or the restricted-family route on this pass. That statement is a review judgment, not a proof certificate. The original full-family overlap estimate and ESC remain outside the result claimed by this candidate.
++
++## 1. Definite source defects repaired
++
++### Missing determinant lemma
++
++`Overlap.lean` called `Late.determinant_ne_zero`, but the original archive contained no such declaration. An import-closure check cannot detect a missing declaration inside an existing imported module. This was a genuine missing piece of the delivered source.
++
++The revised `Arithmetic.lean` now proves it from the already present `reduced_ray_unique`: if `ae-cb=0`, the positive coprime pairs `(a,b)` and `(c,e)` represent the same reduced fraction, hence are equal. The different-ray assumption contradicts that equality. The caller now passes precisely the positivity, coprimality, and distinct-ray hypotheses required by the new lemma.
++
++This matters mathematically: the nonzero determinant is needed before applying the divisor-count bound to its absolute value. A zero determinant belongs to the separate same-ray case.
++
++### Wrong namespace on two asymptotic calls
++
++`AnalyticBounds.lean` and `GlobalAbundance.lean` used:
++
++```lean
++Real.isLittleO_log_rpow_rpow_atTop
++```
++
++In the pinned mathlib v4.27.0 source, that declaration is at the root, not inside `Real`. Both calls now use:
++
++```lean
++_root_.isLittleO_log_rpow_rpow_atTop
++```
++
++Reference checked: `Mathlib/Analysis/SpecialFunctions/Pow/Asymptotics.lean` at tag `v4.27.0`, the declaration beginning `theorem isLittleO_log_rpow_rpow_atTop` following the close of `namespace Asymptotics`. This is an API/source inspection, not an execution result.
++
++### Mismatched summand in the totient split
++
++The old `Overlap.gcd_le_twice_nontrivial_totient` attempted to rewrite an erased sum of `totient d` using an erased-sum formula instantiated with an `if`-valued summand. That formula did not match the sum being rewritten.
++
++The revised proof splits the original summand pointwise for every positive divisor:
++
++```text
++phi(d) = (if d=1 then 1 else 0) + (if 1<d then phi(d) else 0).
++```
++
++Summation and `Nat.sum_totient` then give exactly
++
++```text
++sum_{d|g, d>1} phi(d) = g-1.
++```
++
++Every positive divisor is retained; this does not replace a full divisor sum by a squarefree sum. The subsequent bound `g <= 2*(g-1)` for `g>1` is unchanged.
++
++## 2. Additional proof-body repairs and strengthening
++
++These are explicit source repairs, not claims that their previous or replacement tactic scripts were compiler-tested.
++
++| Module | Repair |
++|---|---|
++| `RayMass.lean` | Expand the square in the product-of-harmonic-sums identity explicitly. Prove injectivity by rewriting equal gcds and quotients before applying exact reconstruction equalities. |
++| `FiniteTransfer.lean` | Expand `mean^2` explicitly rather than ending the product-of-sums identity with `rfl`. |
++| `ScaleSums.lean` | Normalize the sum of `2n` block contributions explicitly, proving `2n*V/(48ab)=n*V/(24ab)`. Supply coefficient lower bounds and handle natural subtraction via an explicit product lower bound. |
++| `Overlap.lean` | Explicitly normalize the outer factor two and inner factor sixteen in the divisor cover. Expand the reciprocal-square product identity and supply the coefficient bound for the gcd kernel. |
++| `DivisorMoments.lean` | Propagate equality of quotients into exact division identities before proving injectivity. Normalize addition in the hockey-stick/Pascal identity instead of asking congruence to commute summands. |
++| `DivisorKernel.lean` | Propagate the index equality before `omega`, make the natural-subtraction positivity argument explicit, and prove the ordered reciprocal denominator comparison using nonnegativity of the added term. |
++| `GlobalAbundance.lean` | Replace a bare positivity call on `1 <= 1 + ...` with an explicit addition-order lemma. |
++
++There are 21 recorded edit groups across nine Lean source files, including the new determinant lemma and the two namespace repairs. `logs/review-source-edits.json` records the edits; `CHANGES.patch` is the authoritative textual comparison with the earlier delivered archive.
++
++## 3. Verifier defects reproduced and repaired
++
++### Exact theorem names
++
++The old axiom-report parser could accept a line for either of these names in place of the required final theorem:
++
++```text
++Unrelated.PrimeAbundance.prime_abundance
++NotPrimeAbundance.prime_abundance
++```
++
++Its regular expression matched a suffix rather than a complete declaration name. The revised parser anchors the whole report line and requires the exact name. It still rejects missing and duplicate reports, `sorryAx`, and any axiom outside `propext`, `Classical.choice`, and `Quot.sound`.
++
++### Exact Lean release
++
++The old substring test accepted version strings `4.27.0-rc1` and `4.27.01`. The revised guard parses a single version banner and requires the exact token `4.27.0`.
++
++These false accepts were reproduced with synthetic inputs and are recorded in `logs/review-old-guard-reproductions.json`. No real Lean verification report existed or was forged; these are defects in the acceptance harness, not evidence of a previously accepted false proof.
++
++### Fresh, attributable local compilation
++
++The revised wrapper stages only audited `.lean` files in a temporary source tree, compiles into a separate new object directory, and requires a fresh nonempty `.olean` for every expected local module. Source-adjacent cached objects are not copied.
++
++Lake search paths may be relative to the matching workspace. The runner now resolves them against that workspace before changing directories to the staged sources, and prepends the fresh local object directory. This avoids accidentally resolving upstream paths against the staging directory.
++
++The wrapper records and compares hashes for source and execution-support files, locks `GoalCheck.lean` as well as `Target.lean`, and uses unique run directories. It writes a success report only after all compilation, type, and axiom checks succeed. None of that execution path has run here. Cached upstream mathlib is still allowed; this is not a complete source rebuild of mathlib or a security proof of the entire software toolchain.
++
++### Stronger static checks, with explicit limits
++
++The source audit now checks 151 explicitly qualified local references of the forms `Late.foo` and `Analytic.foo`, including their transitive import availability. This would detect the missing-determinant-helper class of error. It also rejects unsupported import forms instead of silently skipping them, output-producing commands outside locked `GoalCheck.lean`, and the kernel-check bypass option.
++
++It remains a limited lexical check. It does not resolve every unqualified name, validate external APIs generally, parse Lean completely, or verify tactics. Passing it is not theorem acceptance.
++
++## 4. An exact regression that detects the factor-of-two and prime-power mistakes
++
++Take authentic original packets `(M,s)=(333,1)` and `(696,1)` with auxiliary cutoff zero. Then
++
++```text
++Q  = 1331 = 11^3
++Q' = 2783 = 11^2 * 23
++gcd(Q,Q') = 121
++lcm(Q,Q') = 30613.
++```
++
++Their mean, unordered overlap, and period variance are
++
++```text
++mu    = 34/30613
++Delta = 1/30613
++v     = 1100912/937155769.
++```
++
++Exact arithmetic gives
++
++```text
++v > mu + Delta
++v <= mu + 2*Delta.
++```
++
++Thus this test actually fails when the unordered-overlap multiplier two is lost; it does not merely check a case where either convention would pass. The joint firing probability is `121/(1331*2783)`, so replacing the full gcd by its radical `11` undercounts by a factor of eleven.
++
++Additional interval tests check the lower first-moment error, upper second-moment error, the normalized-square endpoint `2m/mu + m^2/mu^2`, and the outer lower-tail multiplier four, including `H=0`. Same-row tests retain multiple strict labels and check their incompatibility.
++
++These are finite tests with auxiliary cutoffs, not samples of the enormous eventual actual-cutoff regime, and not proofs of the asymptotic theorem.
++
++## 5. Preparation checks actually run
++
++All of the following passed after the repairs:
++
++- The original 20,107 grouped exact-arithmetic regression cases.
++- Eighteen review test methods for source/harness controls; these include sixteen synthetic axiom-parser cases.
++- 7,181 additional finite arithmetic cases: 4,095 full-divisor splits, 2,193 hockey-stick identities, 832 block-coefficient identities, 60 interval-moment cases, and one full-prime-power intersection example.
++- Updated lexical/source audit: 24 Lean files, 5,406 source lines, 279 theorem/lemma bodies, and 151 qualified local references checked.
++- Python syntax compilation of helper scripts and Bash syntax checking of `verify.sh`.
++
++The counts describe test coverage, not degrees of confidence or proof completeness. Some checks share underlying examples. Logs are included. Older first-delivery metadata and logs are preserved as historical records; use `review-*` reports and the current `STATUS.json` for this pass.
++
++## 6. Correct interpretation and next acceptance gate
++
++The earlier audit was too shallow to support any suggestion that presence of all proof bodies meant a runnable formalization. The missing helper and wrong namespace make that particularly clear. The right description is **an end-to-end uncompiled implementation attempt, now repaired and more carefully reviewed**.
++
++The exact target is preserved:
++
++```text
++SHA-256(Target.lean):
++ebf6aa06a5b76c59b1079f357e8bcf596b52a345146bbd2fd213a5c2e79187da
++```
++
++The strict Type-II injection, actual packet cutoff, full prime powers, unordered distinct-row convention, diagonal once, overlap factor two, and literal endpoint `4*(1+12*B^8)^2` are unchanged. The selected-family proof still does not supply the original full-family overlap bound.
++
++Run the revised package in a clean directory with the pinned workspace:
++
++```bash
++bash verify.sh /absolute/path/to/the/matching/lake-workspace
++```
++
++Require the final locked type, the entire fresh local import chain, and actual transitive axiom reports to pass. Additional syntax, API, tactic, or substantive proof repairs may still be needed. This review does not justify promising otherwise.
+--- a/check_axioms.py
++++ b/check_axioms.py
+@@ -24,9 +24,15 @@
+         raise ValueError('Lean reported an admitted proof')
+     output = {}
+     for target in TARGETS:
+-        stem = rf"['\"]?{re.escape(target)}['\"]?\s+"
+-        matches = re.findall(stem+r'depends on axioms:\s*\[([^\]]*)\]', text, flags=re.S)
+-        empty = re.findall(stem+r'does not depend on any axioms', text)
++        # Exact declaration at the start of a report line, not a matching suffix
++        # inside e.g. Unrelated.PrimeAbundance.prime_abundance.
++        name = re.escape(target)
++        stem = rf"^[ \t]*(?:'{name}'|\"{name}\"|{name})[ \t]+"
++        matches = re.findall(
++            stem+r'depends on axioms:[ \t]*\[([^\]]*)\][ \t]*$',
++            text, flags=re.M)
++        empty = re.findall(
++            stem+r'does not depend on any axioms[ \t]*$', text, flags=re.M)
+         if len(matches)+len(empty) != 1:
+             raise ValueError(f'Expected exactly one axiom report for {target}')
+         used = set()
+@@ -50,6 +56,12 @@
+         base.replace('Quot.sound', 'Assume.mean_lower_bound', 1),
+         base+'\nerror: unsolved goals',
+         base.replace(TARGETS[2], TARGETS[2]+'.different', 1),
++        base.replace(TARGETS[0], 'Unrelated.'+TARGETS[0], 1),
++        base.replace(TARGETS[0], 'Not'+TARGETS[0], 1),
++        base.replace(TARGETS[0], TARGETS[0]+"' trailing", 1),
++        base.replace('depends on axioms: [', 'depends on axioms: [Unproved.fact, ', 1),
++        base.replace('depends on axioms: [propext, Classical.choice, Quot.sound]',
++                     'depends on axioms: [propext, Classical.choice, Quot.sound] extra', 1),
+         '\n'.join(base.splitlines()[:-1]),
+     ]
+     for value in bad_cases:
+@@ -59,7 +71,10 @@
+             pass
+         else:
+             raise AssertionError('A negative audit test was accepted')
+-    return len(bad_cases)+2
++    multiline = base.replace('[propext, Classical.choice, Quot.sound]',
++                             '[propext,\n Classical.choice,\n Quot.sound]')
++    assert check(multiline) == check(base)
++    return len(bad_cases)+3
+ 
+ 
+ def main() -> int:
+@@ -78,7 +93,7 @@
+         if args.json:
+             args.json.parent.mkdir(parents=True, exist_ok=True)
+             args.json.write_text(json.dumps(result, indent=2)+'\n')
+-        print('Actual Lean axiom reports accepted for all required declarations.')
++        print('Axiom-report text accepted for all required declarations; run provenance is checked by verify.sh.')
+     except (OSError, ValueError) as exc:
+         print(f'AXIOM AUDIT FAILED: {exc}', file=sys.stderr)
+         return 1
+--- /dev/null
++++ b/review_tests.py
+@@ -0,0 +1,238 @@
++#!/usr/bin/env python3
++"""Second-pass review tests. No Lean executable is invoked by this script."""
++from __future__ import annotations
++import argparse
++from fractions import Fraction as F
++import importlib.util
++import json
++from math import comb, gcd, lcm
++import os
++from pathlib import Path
++import shutil
++import tempfile
++import unittest
++from unittest.mock import patch
++import check_axioms
++import static_audit
++import verification_guards as guards
++from regression_tests import factor
++
++ROOT=Path(__file__).resolve().parent
++
++class ExecutionGuardTests(unittest.TestCase):
++    def test_axiom_parser_regression_suite(self):
++        self.assertEqual(check_axioms.self_test(),16)
++
++    def test_exact_release_banners(self):
++        for text in (
++            'Lean (version 4.27.0)',
++            'Lean (version 4.27.0, x86_64-unknown-linux-gnu, commit abc, Release)\n',
++            'Lean (version 4.27.0, aarch64-apple-darwin, commit abc, Release)',
++        ):
++            with self.subTest(text=text):
++                self.assertEqual(guards.validate_lean_version(text),'4.27.0')
++
++    def test_reject_near_match_versions(self):
++        for version in ('4.27.0-rc1','4.27.01','4.27.0+custom','4.28.0','4.2.7.0','v4.27.0'):
++            with self.subTest(version=version):
++                with self.assertRaises(ValueError):
++                    guards.validate_lean_version(f'Lean (version {version}, Release)')
++        for text in ('', 'arbitrary version 4.27.0',
++                     'prefix Lean (version 4.27.0)',
++                     'Lean (version 4.27.0)\nLean (version 4.27.0)'):
++            with self.subTest(text=text):
++                with self.assertRaises(ValueError): guards.validate_lean_version(text)
++
++    def test_relative_lake_search_paths(self):
++        workspace=Path('/some/workspace')
++        result=guards.normalized_lean_path(
++            '.lake/packages/mathlib/.lake/build/lib/lean:/upstream/absolute:./.lake/build/lib/lean',
++            workspace,Path('/fresh/objects')).split(os.pathsep)
++        self.assertEqual(result,[
++            '/fresh/objects',
++            '/some/workspace/.lake/packages/mathlib/.lake/build/lib/lean',
++            '/upstream/absolute', '/some/workspace/.lake/build/lib/lean'])
++
++    def test_snapshot_does_not_copy_cached_objects(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root=Path(temp)/'root'; root.mkdir()
++            (root/'Module.lean').write_text('theorem true_check : True := True.intro\n')
++            (root/'Module.olean').write_bytes(b'STALE OBJECT')
++            audit={'files':{'Module.lean':{'sha256':guards.sha256(root/'Module.lean')}}}
++            stage=Path(temp)/'stage'
++            guards.stage_sources(root,stage,audit)
++            self.assertTrue((stage/'Module.lean').exists())
++            self.assertFalse((stage/'Module.olean').exists())
++
++    def test_snapshot_rejects_changed_source(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root=Path(temp)/'root'; root.mkdir()
++            (root/'Module.lean').write_text('one')
++            audit={'files':{'Module.lean':{'sha256':guards.sha256(root/'Module.lean')}}}
++            (root/'Module.lean').write_text('changed')
++            with self.assertRaises(ValueError):
++                guards.stage_sources(root,Path(temp)/'stage',audit)
++
++    def test_snapshot_rejects_path_escape(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root=Path(temp)/'root'; root.mkdir()
++            with self.assertRaises(ValueError):
++                guards.stage_sources(root,Path(temp)/'stage',
++                    {'files':{'../escape.lean':{'sha256':'bad'}}})
++
++    def audit_mutation(self,filename:str,append:str):
++        with tempfile.TemporaryDirectory() as temp:
++            root=Path(temp)
++            shutil.copytree(ROOT/'PrimeAbundance',root/'PrimeAbundance')
++            for name in ('PrimeAbundance.lean','GoalCheck.lean','TARGET.sha256'):
++                shutil.copyfile(ROOT/name,root/name)
++            with (root/filename).open('a') as out: out.write(append)
++            with patch.object(static_audit,'ROOT',root):
++                return static_audit.audit()
++
++    def test_target_cannot_be_changed(self):
++        with self.assertRaises(ValueError): self.audit_mutation('PrimeAbundance/Target.lean','\n')
++
++    def test_goalcheck_cannot_be_changed(self):
++        with self.assertRaises(ValueError): self.audit_mutation('GoalCheck.lean','\n')
++
++    def test_printed_proof_reports_cannot_be_injected_elsewhere(self):
++        with self.assertRaises(ValueError):
++            self.audit_mutation('PrimeAbundance/Sums.lean','\n#eval "forged output"\n')
++
++    def test_unsupported_import_not_silently_ignored(self):
++        with self.assertRaises(ValueError):
++            self.audit_mutation('PrimeAbundance/Sums.lean','\nimport Mathlib Unknown.Module\n')
++
++    def test_missing_local_import_rejected(self):
++        with self.assertRaises(ValueError):
++            self.audit_mutation('PrimeAbundance/Sums.lean','\nimport PrimeAbundance.Absent\n')
++
++    def test_kernel_bypass_option_rejected(self):
++        with self.assertRaises(ValueError):
++            self.audit_mutation('PrimeAbundance/Sums.lean','\nset_option debug.skipKernelTC true\n')
++
++    def test_admission_in_code_rejected(self):
++        with self.assertRaises(ValueError):
++            self.audit_mutation('PrimeAbundance/Sums.lean','\ntheorem bad : True := by sorry\n')
++
++    def test_admission_word_in_comment_is_not_code(self):
++        report=self.audit_mutation('PrimeAbundance/Sums.lean','\n/- no sorry or axiom allowed /- nested -/ -/\n')
++        self.assertEqual(report['status'],'PASSED_SOURCE_HYGIENE_ONLY')
++
++    def test_missing_qualified_local_lemma_rejected(self):
++        with self.assertRaisesRegex(ValueError, 'undefined qualified local reference'):
++            self.audit_mutation('PrimeAbundance/Overlap.lean',
++                '\ntheorem review_probe : True := by\n'
++                '  have h := Late.deliberately_missing_review_lemma\n'
++                '  exact True.intro\n')
++
++    def test_qualified_local_lemma_needs_import(self):
++        with self.assertRaisesRegex(ValueError, 'is not imported'):
++            self.audit_mutation('PrimeAbundance/Arithmetic.lean',
++                '\ntheorem review_probe : True := by\n'
++                '  have h := Analytic.quantitative_abundance\n'
++                '  exact True.intro\n')
++
++    def test_known_wrong_namespace_removed(self):
++        for filename in ('AnalyticBounds.lean','GlobalAbundance.lean'):
++            text=(ROOT/'PrimeAbundance'/filename).read_text()
++            self.assertNotIn('Real.isLittleO_log_rpow_rpow_atTop',text)
++            self.assertIn('_root_.isLittleO_log_rpow_rpow_atTop',text)
++
++
++def totient(n:int)->int:
++    result=n
++    for p in factor(n): result=result//p*(p-1)
++    return result
++
++def mathematical_checks()->dict:
++    counts={}
++    count=0
++    for g in range(2,4097):
++        value=sum(totient(d) for d in range(2,g+1) if g%d==0)
++        assert value==g-1
++        assert g <= 2*value
++        count+=1
++    counts['full_divisor_totient_split']=count
++    count=0
++    for k in range(17):
++        partial=0
++        for e in range(129):
++            partial+=comb(e+k,k)
++            assert partial==comb(e+k+1,k+1)
++            count+=1
++    counts['hockey_stick_identity']=count
++    count=0
++    for a in range(1,9):
++        for b in range(1,9):
++            for n in range(13):
++                assert 2*n*F(1,48*a*b)==F(n,24*a*b)
++                count+=1
++    counts['block_coefficient_identity']=count
++    # Genuine original packets with auxiliary roughness cutoff zero. These are
++    # not numerical samples of the enormous eventual actual-cutoff regime.
++    families=[[(333,1),(696,1)],[(333,1),(696,1),(333,9),(696,9)],
++              [(6,1),(6,2),(6,3),(6,4)]]
++    reports=[]; intervals=0
++    for packets in families:
++        for m,s in packets: assert m%3==0 and 0<s<m and m*m%s==0
++        qs=[4*m-1 for m,s in packets]
++        period=lcm(*qs)
++        mu=sum((F(1,q) for q in qs),F(0)); delta=F(0)
++        for i,(mi,si) in enumerate(packets):
++            for j,(mj,sj) in enumerate(packets):
++                g=gcd(qs[i],qs[j])
++                if qs[i]<qs[j] and g>1 and (si-sj)%g==0:
++                    delta+=F(g,qs[i]*qs[j])
++        def firing(n):
++            return sum((n+4*s)%q==0 for (m,s),q in zip(packets,qs))
++        samples=[firing(n) for n in range(period)]
++        variance=F(sum(t*t for t in samples),period)-mu*mu
++        assert F(sum(samples),period)==mu
++        assert variance<=mu+2*delta
++        for start in (0,1,17,period-1):
++            for h in (0,1,2,17,period+1):
++                t=[samples[(start+k)%period] for k in range(h)]
++                S1=sum(t); S2=sum(k*k for k in t); m=len(packets)
++                assert S1>=h*mu-m
++                assert S2<=h*(mu*mu+mu+2*delta)+m*m
++                normalized=F(h)-2*S1/mu+S2/(mu*mu)
++                raw_bound=h*(mu+2*delta)/(mu*mu)+2*m/mu+F(m*m)/(mu*mu)
++                assert normalized<=raw_bound
++                tail=sum(2*x<=mu for x in t)
++                assert tail<=4*normalized
++                intervals+=1
++        reports.append({'packets':packets,'period':period,'mean':str(mu),
++                        'unordered_overlap':str(delta),'variance':str(variance),
++                        'factor_one_would_fail':variance>mu+delta})
++    # This example actually detects, rather than merely tolerates, losing factor two.
++    assert reports[0]['factor_one_would_fail']
++    q,qq=1331,2783
++    assert gcd(q,qq)==121
++    rho=F(1,lcm(q,qq))
++    assert rho==F(121,q*qq) and rho>F(11,q*qq)
++    counts['normalized_moment_interval_cases']=intervals
++    counts['full_prime_power_intersection_case']=1
++    return {'counts':counts,'moment_examples':reports}
++
++def main()->int:
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--json',type=Path)
++    args=parser.parse_args()
++    result=unittest.TextTestRunner(verbosity=2).run(
++        unittest.defaultTestLoader.loadTestsFromTestCase(ExecutionGuardTests))
++    if not result.wasSuccessful(): return 1
++    math=mathematical_checks()
++    report={'status':'PASSED_REVIEW_REGRESSIONS_NOT_LEAN_VERIFICATION',
++            'unit_tests':result.testsRun,'axiom_parser_synthetic_cases':check_axioms.self_test(),
++            'mathematical_checks':math,'lean_executed':False,
++            'asymptotic_theorem_verified':False,
++            'test_scope':'Finite exact-arithmetic and verifier-control tests only.'}
++    if args.json:
++        args.json.parent.mkdir(parents=True,exist_ok=True)
++        args.json.write_text(json.dumps(report,indent=2)+'\n')
++    print(json.dumps(report,indent=2))
++    return 0
++
++if __name__=='__main__': raise SystemExit(main())
+--- a/static_audit.py
++++ b/static_audit.py
+@@ -12,6 +12,7 @@
+ LOCKED_TARGET_SHA256 = 'ebf6aa06a5b76c59b1079f357e8bcf596b52a345146bbd2fd213a5c2e79187da'
+ FORBIDDEN = re.compile(r'(?<![\w\'])\b(sorry|admit|axiom|sorryAx|native_decide|unsafe|implemented_by|extern|run_tac|run_elab|elab|macro)\b')
+ DECL = re.compile(r'^\s*(?:private\s+)?(?:noncomputable\s+)?(theorem|lemma|def|abbrev|structure)\s+([\w\u0080-\uffff\'.]+)', re.M)
++LOCKED_GOALCHECK_SHA256 = 'b552de9ff780d7dd04de566c4691ed514221127026a2e55253f61061927a5a99'
+ IMPORT = re.compile(r'^\s*import\s+([\w.]+)\s*$', re.M)
+ 
+ 
+@@ -55,8 +56,59 @@
+     return ''.join(out)
+ 
+ 
++def local_declaration_index(sources: dict[str, Path]) -> dict[str, str]:
++    """Limited namespace-aware declaration presence, not Lean name resolution."""
++    names = {}
++    for module,path in sources.items():
++        stack = []
++        for line in strip_comments_and_strings(path.read_text()).splitlines():
++            command = line.strip()
++            if command.startswith('namespace '):
++                stack.append(command.split()[1])
++            elif re.fullmatch(r'(?:noncomputable\s+)?section(?:\s+\S+)?',command):
++                stack.append(None)
++            elif re.fullmatch(r'end(?:\s+\S+)?',command):
++                if stack: stack.pop()
++            else:
++                declaration = DECL.match(line)
++                if declaration:
++                    prefix = '.'.join(frame for frame in stack if frame)
++                    name = '.'.join(filter(None,(prefix,declaration.group(2))))
++                    names[name] = module
++    return names
++
++
++def check_qualified_local_references(sources: dict[str,Path],
++                                     graph: dict[str,list[str]]) -> int:
++    """Catch missing explicit Late.foo/Analytic.foo references and missing imports.
++
++    Unqualified names, generated declarations, tactics and external APIs remain
++    the Lean elaborator's responsibility. This is deliberately not a type checker.
++    """
++    names = local_declaration_index(sources)
++    checked = 0
++    for module,path in sources.items():
++        closure={module}
++        todo=list(graph[module])
++        while todo:
++            dep=todo.pop()
++            if dep not in closure:
++                closure.add(dep); todo.extend(graph[dep])
++        text=strip_comments_and_strings(path.read_text())
++        for match in re.finditer(r"\b(?:PrimeAbundance\.)?((?:Late|Analytic)\.[\w']+)",text):
++            qualified='PrimeAbundance.'+match.group(1)
++            owner=names.get(qualified)
++            line=text.count('\n',0,match.start())+1
++            if owner is None:
++                raise ValueError(f'{module}:{line}: undefined qualified local reference {qualified}')
++            if owner not in closure:
++                raise ValueError(f'{module}:{line}: local reference {qualified} is not imported')
++            checked+=1
++    return checked
++
++
+ def audit() -> dict:
+-    paths = sorted((ROOT/'PrimeAbundance').glob('*.lean')) + [ROOT/'PrimeAbundance.lean', ROOT/'GoalCheck.lean']
++    paths = sorted((ROOT/'PrimeAbundance').rglob('*.lean')) + [ROOT/'PrimeAbundance.lean', ROOT/'GoalCheck.lean']
+     if not paths or any(not p.is_file() for p in paths):
+         raise ValueError('Missing source files')
+     if hashlib.sha256((ROOT/'PrimeAbundance/Target.lean').read_bytes()).hexdigest() != LOCKED_TARGET_SHA256:
+@@ -64,6 +116,8 @@
+     lock = (ROOT/'TARGET.sha256').read_text().split()
+     if lock != [LOCKED_TARGET_SHA256, 'PrimeAbundance/Target.lean']:
+         raise ValueError('TARGET.sha256 does not match the original target lock')
++    if hashlib.sha256((ROOT/'GoalCheck.lean').read_bytes()).hexdigest() != LOCKED_GOALCHECK_SHA256:
++        raise ValueError('GoalCheck.lean differs from the exact type/axiom audit entrypoint')
+     sources = {'.'.join(p.relative_to(ROOT).with_suffix('').parts): p for p in paths}
+     graph: dict[str, list[str]] = {}
+     count = {'theorem': 0, 'lemma': 0, 'def': 0, 'abbrev': 0, 'structure': 0}
+@@ -75,6 +129,15 @@
+         if bad:
+             line = clean.count('\n', 0, bad.start())+1
+             raise ValueError(f'{p.relative_to(ROOT)}:{line}: forbidden token {bad.group(1)!r}')
++        if re.search(r'\bdebug\.skipKernelTC\b', clean):
++            raise ValueError(f'{mod}: kernel type-checking bypass option is forbidden')
++        if mod != 'GoalCheck' and re.search(r'^\s*#', clean, flags=re.M):
++            raise ValueError(f'{mod}: output-producing commands outside locked GoalCheck are forbidden')
++        # Do not silently ignore an import syntax this lexical tool cannot parse.
++        for line in clean.splitlines():
++            if re.match(r'^\s*(?:(?:public|private|meta)\s+)*import\b', line):
++                if IMPORT.fullmatch(line) is None:
++                    raise ValueError(f'{mod}: unsupported import form (use one plain import per line)')
+         if re.search(r'positivity\s*\[', clean):
+             raise ValueError(f'{mod}: unsupported positivity argument form')
+         # A limited delimiter sanity check, NOT a full syntax check.
+@@ -107,6 +170,7 @@
+             'lines': len(text.splitlines()),
+             'declarations': len(decls),
+         }
++    local_references = check_qualified_local_references(sources, graph)
+     main = strip_comments_and_strings((ROOT/'PrimeAbundance/Main.lean').read_text())
+     if not re.search(r'theorem\s+prime_abundance\s*:\s*PrimeAbundanceClaim\s*:=\s*by', main):
+         raise ValueError('Main does not have the locked, premise-free final theorem type')
+@@ -128,6 +192,8 @@
+         'mathematical_correctness_certified':False,
+         'limitations':'Lexical/source-structure checks do not validate tactic proofs or library APIs.',
+         'target_sha256':LOCKED_TARGET_SHA256,
++        'goalcheck_sha256':LOCKED_GOALCHECK_SHA256,
++        'qualified_local_references_checked':local_references,
+         'source_files':len(paths),
+         'source_lines':sum(m['lines'] for m in manifest.values()),
+         'declaration_counts':count,
+--- /dev/null
++++ b/verification_guards.py
+@@ -0,0 +1,94 @@
++#!/usr/bin/env python3
++"""Execution guards. These validate run setup, not Lean proofs."""
++from __future__ import annotations
++import argparse
++import hashlib
++import json
++import os
++from pathlib import Path
++import re
++import shutil
++import sys
++
++EXPECTED_LEAN = '4.27.0'
++EXECUTION_SUPPORT = (
++    'GoalCheck.lean', 'TARGET.sha256', 'lean-toolchain', 'lakefile.toml',
++    'verify.sh', 'static_audit.py', 'check_axioms.py', 'verification_guards.py',
++)
++
++def validate_lean_version(text: str) -> str:
++    """Require a single actual version banner and an exact release token."""
++    match = re.fullmatch(r'Lean \(version ([^\s,)]+)(?:, [^()\r\n]*)?\)', text.strip())
++    if match is None or match.group(1) != EXPECTED_LEAN:
++        raise ValueError(f'Expected exactly Lean {EXPECTED_LEAN}, not {text.strip()!r}')
++    return match.group(1)
++
++def sha256(path: Path) -> str:
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++def support_hashes(root: Path) -> dict[str,str]:
++    return {name: sha256(root/name) for name in EXECUTION_SUPPORT}
++
++def stage_sources(root: Path, destination: Path, audit: dict) -> None:
++    """Copy only audited Lean source, never source-adjacent cached objects."""
++    destination = destination.resolve()
++    for relative, info in audit['files'].items():
++        source = root/relative
++        target = (destination/relative).resolve()
++        if not target.is_relative_to(destination):
++            raise ValueError(f'Unsafe source path in audit: {relative!r}')
++        target.parent.mkdir(parents=True, exist_ok=True)
++        shutil.copyfile(source, target)
++        if sha256(target) != info['sha256']:
++            raise ValueError(f'Source changed while creating snapshot: {relative}')
++
++def normalized_lean_path(value: str, workspace: Path, build_out: Path) -> str:
++    """Lake paths may be relative to its workspace, not to the staged sources."""
++    entries = [str(build_out.resolve())]
++    if value:
++        for entry in value.split(os.pathsep):
++            path = Path(entry) if entry else Path('.')
++            entries.append(str((path if path.is_absolute() else workspace/path).resolve()))
++    return os.pathsep.join(dict.fromkeys(entries))
++
++def main() -> int:
++    parser=argparse.ArgumentParser(description=__doc__)
++    commands=parser.add_subparsers(dest='command',required=True)
++    version=commands.add_parser('version'); version.add_argument('banner',type=Path)
++    snap=commands.add_parser('snapshot')
++    snap.add_argument('root',type=Path); snap.add_argument('destination',type=Path)
++    snap.add_argument('audit',type=Path); snap.add_argument('manifest',type=Path)
++    unchanged=commands.add_parser('unchanged')
++    unchanged.add_argument('root',type=Path); unchanged.add_argument('manifest',type=Path)
++    runner=commands.add_parser('run-lean')
++    runner.add_argument('stage',type=Path); runner.add_argument('build_out',type=Path)
++    runner.add_argument('lean_args',nargs=argparse.REMAINDER)
++    args=parser.parse_args()
++    try:
++        if args.command=='version':
++            print('Exact Lean release accepted:',validate_lean_version(args.banner.read_text()))
++        elif args.command=='snapshot':
++            audit=json.loads(args.audit.read_text())
++            before=support_hashes(args.root)
++            stage_sources(args.root,args.destination,audit)
++            if before != support_hashes(args.root):
++                raise ValueError('Verification support files changed during snapshot creation')
++            args.manifest.write_text(json.dumps(before,indent=2)+'\n')
++        elif args.command=='unchanged':
++            before=json.loads(args.manifest.read_text())
++            if before != support_hashes(args.root):
++                raise ValueError('Verification support files changed during execution')
++        elif args.command=='run-lean':
++            workspace=Path.cwd()
++            os.environ['LEAN_PATH']=normalized_lean_path(
++                os.environ.get('LEAN_PATH',''),workspace,args.build_out)
++            arguments=args.lean_args
++            if arguments and arguments[0]=='--': arguments=arguments[1:]
++            os.chdir(args.stage)
++            os.execvp('lean',['lean',*arguments])
++    except (OSError,ValueError,KeyError) as exc:
++        print(f'EXECUTION GUARD FAILED: {exc}',file=sys.stderr)
++        return 1
++    return 0
++
++if __name__=='__main__': raise SystemExit(main())
+--- a/verify.sh
++++ b/verify.sh
+@@ -1,26 +1,25 @@
+ #!/usr/bin/env bash
+-# Execute later in a Lean-enabled environment. This script was NOT run when
+-# preparing the package. A failure anywhere is NOT a verified theorem.
++# Fresh, pinned source execution. A setup check or partial build is not success.
+ # Usage: bash verify.sh [existing-pinned-Lake-workspace]
+ set -euo pipefail
+ ROOT="$(cd "$(dirname "$0")" && pwd)"
+ WORKSPACE="${1:-$ROOT}"
+ WORKSPACE="$(cd "$WORKSPACE" && pwd)"
+ EXPECTED_MATHLIB=a3a10db0e9d66acbebf76c5e6a135066525ac900
+-LOGS="$ROOT/logs/lean-run-$(date -u +%Y%m%dT%H%M%SZ)"
+-mkdir -p "$LOGS"
++mkdir -p "$ROOT/logs"
++LOGS="$(mktemp -d "$ROOT/logs/lean-run-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX")"
+ python3 "$ROOT/static_audit.py" --json "$LOGS/source-audit.json"
+-python3 "$ROOT/static_audit.py" --order > "$LOGS/compile-order.txt"
++python3 - "$LOGS/source-audit.json" > "$LOGS/compile-order.txt" <<'PY'
++import json, sys
++print('\n'.join(json.load(open(sys.argv[1]))['compile_order']))
++PY
+ if ! command -v lake >/dev/null 2>&1; then
+   echo 'STOP: lake is not installed; no Lean elaboration attempted.' >&2
+   exit 127
+ fi
+ cd "$WORKSPACE"
+-ACTUAL="$(lake env lean --version)"
+-printf '%s\n' "$ACTUAL" | tee "$LOGS/lean-version.txt"
+-[[ "$ACTUAL" == *'version 4.27.0'* ]] || {
+-  echo 'STOP: expected Lean 4.27.0 exactly.' >&2; exit 2;
+-}
++lake env lean --version | tee "$LOGS/lean-version.txt"
++python3 "$ROOT/verification_guards.py" version "$LOGS/lean-version.txt"
+ MATHLIB="$WORKSPACE/.lake/packages/mathlib"
+ [[ -d "$MATHLIB" ]] || {
+   echo 'STOP: mathlib dependency absent; initialize the pinned workspace first.' >&2; exit 2;
+@@ -33,28 +32,32 @@
+ [[ -z "$(git -C "$MATHLIB" status --porcelain --untracked-files=no)" ]] || {
+   echo 'STOP: tracked mathlib source files are modified.' >&2; exit 2;
+ }
+-OUT="$(mktemp -d)"
+-trap 'rm -rf "$OUT"' EXIT
+-export BUILD_OUT="$OUT" SOURCE_ROOT="$ROOT"
++TMP="$(mktemp -d)"
++trap 'rm -rf "$TMP"' EXIT
++OUT="$TMP/objects"
++STAGE="$TMP/sources"
++mkdir -p "$OUT" "$STAGE"
++python3 "$ROOT/verification_guards.py" snapshot "$ROOT" "$STAGE" \
++  "$LOGS/source-audit.json" "$LOGS/execution-support.json"
+ run_lean() {
+-  lake env bash -c '
+-    export LEAN_PATH="$BUILD_OUT${LEAN_PATH:+:$LEAN_PATH}"
+-    cd "$SOURCE_ROOT"
+-    exec lean "$@"
+-  ' -- "$@"
++  # Invoked from WORKSPACE so relative Lake search paths can be normalized before cd.
++  lake env python3 "$ROOT/verification_guards.py" run-lean "$STAGE" "$OUT" -- "$@"
+ }
+-# Compile every source in the Main import closure, including the final type check,
+-# to a NEW directory. Existing local .olean files are not used as substitutes.
++# Compile only the staged, audited source into new objects. No local cached objects
++# are copied to either temporary tree. Upstream mathlib's cache remains permitted.
+ while IFS= read -r module; do
+   relative="${module//./\/}"
+   mkdir -p "$OUT/$(dirname "$relative")"
+   printf '\n=== %s ===\n' "$module"
+-  run_lean -o "$OUT/$relative.olean" "$ROOT/$relative.lean" \
++  run_lean -o "$OUT/$relative.olean" "$STAGE/$relative.lean" \
+     2>&1 | tee "$LOGS/$module.log"
++  [[ -s "$OUT/$relative.olean" ]] || {
++    echo "STOP: no fresh object emitted for $module." >&2; exit 2;
++  }
+ done < "$LOGS/compile-order.txt"
+ python3 "$ROOT/check_axioms.py" "$LOGS/GoalCheck.log" --json "$LOGS/axioms.json"
+-# A second source audit catches source changes during compilation.
+ python3 "$ROOT/static_audit.py" --json "$LOGS/source-audit-after.json"
++python3 "$ROOT/verification_guards.py" unchanged "$ROOT" "$LOGS/execution-support.json"
+ python3 - "$LOGS" <<'PY'
+ from pathlib import Path
+ import json, sys
+@@ -69,7 +72,9 @@
+     'mathlib_commit':(root/'mathlib-revision.txt').read_text().strip(),
+     'target':'PrimeAbundance.prime_abundance : PrimeAbundance.PrimeAbundanceClaim',
+     'target_sha256':before['target_sha256'],
++    'goalcheck_sha256':before['goalcheck_sha256'],
+     'source_files':before['files'],
++    'execution_support':json.loads((root/'execution-support.json').read_text()),
+     'axioms':json.loads((root/'axioms.json').read_text()),
+     'scope':'The locked prime-abundance claim; not ESC and not a full-mathlib source rebuild.'
+ }

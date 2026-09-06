@@ -1,0 +1,27 @@
+{
+  "PrimeAbundance.prime_abundance": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ],
+  "PrimeAbundance.Analytic.analytic_bounds": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ],
+  "PrimeAbundance.Analytic.quantitative_abundance": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ],
+  "PrimeAbundance.Analytic.relative_density": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ],
+  "PrimeAbundance.Late.finite_exceptional_bound": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ]
+}

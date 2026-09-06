@@ -1,0 +1,168 @@
+{
+  "status": "FINAL_GOAL_ELABORATED_AND_REQUIRED_AXIOM_REPORTS_ACCEPTED",
+  "lean_version": "Lean (version 4.27.0, arm64-apple-darwin24.6.0, commit db93fe1608548721853390a10cd40580fe7d22ae, Release)",
+  "mathlib_commit": "a3a10db0e9d66acbebf76c5e6a135066525ac900",
+  "target": "PrimeAbundance.prime_abundance : PrimeAbundance.PrimeAbundanceClaim",
+  "target_sha256": "f75f42dda13a48390f253fcd16ff40a01b22bbd61b067f759dd4516b1d0ae0dc",
+  "goalcheck_sha256": "b552de9ff780d7dd04de566c4691ed514221127026a2e55253f61061927a5a99",
+  "source_files": {
+    "PrimeAbundance/AnalyticBounds.lean": {
+      "sha256": "375be23c4f4a8de186b9f44c2fd7df04537272003a580a34c6e68ad1e7588a8d",
+      "lines": 360,
+      "declarations": 27
+    },
+    "PrimeAbundance/Arithmetic.lean": {
+      "sha256": "15c851307353532a272a8602e9ae591c0ed976d70df3ff7957d2eed5ff7ff6fc",
+      "lines": 189,
+      "declarations": 19
+    },
+    "PrimeAbundance/Bonferroni.lean": {
+      "sha256": "c1d84f72aabd706c391320f4ab8a6e3d30cd0f7734b353f7d6da90005c5f4733",
+      "lines": 272,
+      "declarations": 19
+    },
+    "PrimeAbundance/Decoder.lean": {
+      "sha256": "d28aaaa2d6c676394d71b0112e7b32d218bb953c08fe9f9eaabd004b1e293bde",
+      "lines": 216,
+      "declarations": 12
+    },
+    "PrimeAbundance/DeterminantMoment.lean": {
+      "sha256": "608631f66839cbb693dc8ad95d5e17a0f8d207a051495c03aa59f60336be632e",
+      "lines": 337,
+      "declarations": 18
+    },
+    "PrimeAbundance/DivisorKernel.lean": {
+      "sha256": "a35925491639f3bff0f6a994d35221de3f81db34b74c9fe9b4e1446aa0d47f6b",
+      "lines": 356,
+      "declarations": 15
+    },
+    "PrimeAbundance/DivisorMoments.lean": {
+      "sha256": "3e8879348061b7fea90fad6023166a4baccb2e09b2d189cd8c4bdc993869c20c",
+      "lines": 230,
+      "declarations": 14
+    },
+    "PrimeAbundance/FiniteTransfer.lean": {
+      "sha256": "6309eeae72a94d40ac0736cbae7b408b67638766a9ec276ff2112ed08e77967e",
+      "lines": 440,
+      "declarations": 23
+    },
+    "PrimeAbundance/GlobalAbundance.lean": {
+      "sha256": "981c62b121fbaeef758f28ee8feadc644b6b8d4b48909c9ae78bf2b4a9e5b726",
+      "lines": 433,
+      "declarations": 25
+    },
+    "PrimeAbundance/Main.lean": {
+      "sha256": "c605e089959817e46e9af33b9eb82fea8c5e03ecf59386290695b32fd5c8c615",
+      "lines": 19,
+      "declarations": 1
+    },
+    "PrimeAbundance/Overlap.lean": {
+      "sha256": "3f9e9bd81865e79c00a56b8441d973a242806610311ac775e9a02bf86fbb1478",
+      "lines": 575,
+      "declarations": 28
+    },
+    "PrimeAbundance/Packets.lean": {
+      "sha256": "f157402fe18f4e996919681a8a5ec2b526c40c63746128392f7ed957c076310c",
+      "lines": 115,
+      "declarations": 19
+    },
+    "PrimeAbundance/PrimeCount.lean": {
+      "sha256": "bdb5ab6498dca9c98cd8b83697e3a60ddab381796f2a6b9faaa1123cfb935cbf",
+      "lines": 129,
+      "declarations": 9
+    },
+    "PrimeAbundance/PrimeProduct.lean": {
+      "sha256": "f81aa2882d9fcb0ab2d7ae676284fc392aec0e436880d03042cac690fe758979",
+      "lines": 367,
+      "declarations": 21
+    },
+    "PrimeAbundance/RayMass.lean": {
+      "sha256": "7477882de33c8ed69c7222da895c5a29d9a18627eeeeaf33f8c28dda481f963c",
+      "lines": 204,
+      "declarations": 13
+    },
+    "PrimeAbundance/ReciprocalBlocks.lean": {
+      "sha256": "95fb95ea3ead27e7a8c7b7d4e2b88d9777b43a3c96c8ef5e40647dda5a5deab0",
+      "lines": 80,
+      "declarations": 4
+    },
+    "PrimeAbundance/Residues.lean": {
+      "sha256": "63f0d9ed43ccf77fbd3e3293ed9fff1a6825d43184c503e48d009e13e3751cc1",
+      "lines": 229,
+      "declarations": 12
+    },
+    "PrimeAbundance/ScaleSums.lean": {
+      "sha256": "78ddd3e2ccc3c82060092d2304dddd9f3e31d77e631def4a8234575179691052",
+      "lines": 359,
+      "declarations": 23
+    },
+    "PrimeAbundance/Sieve.lean": {
+      "sha256": "0e042d420003026adc43c2a42b539171d88c0ab2821cbc0158290529f026ca44",
+      "lines": 354,
+      "declarations": 24
+    },
+    "PrimeAbundance/Sums.lean": {
+      "sha256": "49455c284aaf638f95510f431f12d8785e9dfa1ae91054d11eb0958d3ba5c23c",
+      "lines": 278,
+      "declarations": 27
+    },
+    "PrimeAbundance/Target.lean": {
+      "sha256": "f75f42dda13a48390f253fcd16ff40a01b22bbd61b067f759dd4516b1d0ae0dc",
+      "lines": 68,
+      "declarations": 9
+    },
+    "PrimeAbundance/TensorSums.lean": {
+      "sha256": "e629bd6b3fd1e43d41fda122f58347e888826a1c993649f18f7c49d66a27e9f2",
+      "lines": 155,
+      "declarations": 8
+    },
+    "PrimeAbundance.lean": {
+      "sha256": "baf879f73130fc9279cdb8ded1efcb2e797e8bd3631975f573a5da979f005610",
+      "lines": 2,
+      "declarations": 0
+    },
+    "GoalCheck.lean": {
+      "sha256": "b552de9ff780d7dd04de566c4691ed514221127026a2e55253f61061927a5a99",
+      "lines": 10,
+      "declarations": 0
+    }
+  },
+  "execution_support": {
+    "GoalCheck.lean": "b552de9ff780d7dd04de566c4691ed514221127026a2e55253f61061927a5a99",
+    "TARGET.sha256": "9914f96df8f4beaf35a4f99d2a380e3cec1ea747723c4f9dfbfc18f1f383c043",
+    "lean-toolchain": "d55ca0039a5479db5b38919d005b2c427b89b3be4f0184a20f2f4eae931f5bdb",
+    "lakefile.toml": "feab8a3f7f656abf6220da4798c90aeb5a95e0b3d9dc2f9aba22fef1dfe68057",
+    "verify.sh": "d548231a709b36c36df634cf64942e2bd2ed874f9647a8e25986f5ae3556a4bd",
+    "static_audit.py": "a78cae1dc945e0d7ebb6d2eefee6e4f3a1932c4db9dc853e4328da70851a20c1",
+    "check_axioms.py": "ad1fdad7fe26c22d6f5cfd88c3b2ef03185007d9c4cd8b6d3eaa1ab67520ce01",
+    "verification_guards.py": "1547b8c27d33c66ce30ebe2b3f868fd1a62bcfb7774e11d2188e6010dea2bfb9"
+  },
+  "axioms": {
+    "PrimeAbundance.prime_abundance": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "PrimeAbundance.Analytic.analytic_bounds": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "PrimeAbundance.Analytic.quantitative_abundance": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "PrimeAbundance.Analytic.relative_density": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ],
+    "PrimeAbundance.Late.finite_exceptional_bound": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+    ]
+  },
+  "scope": "The locked prime-abundance claim; not ESC and not a full-mathlib source rebuild."
+}
