@@ -49,12 +49,14 @@ to conclude the matching exponent three, or the sharper Section 10
 
 ## Preprint release
 
-The synchronized v0.5 Markdown, LaTeX, and 16-page PDF were published at
+The synchronized v0.5 Markdown, LaTeX, 16-page PDF, and verified Lean source
+package were published at
 <https://github.com/akakabrian/ErdosStraus/releases/tag/prime-abundance-v0.5>
-from commit `941c55c` on branch `release/prime-abundance-v0.5`.
+under tag `prime-abundance-v0.5` on branch `release/prime-abundance-v0.5`.
 
 SHA-256:
 
 - Markdown: `62ee30a33388a931ba858f293531193a9a583ce84906e0894dac99931e3b8c19`
 - LaTeX: `eef2cb5f1d246441551e4ed1253d635f2b5713cc90a92fd91be27aa2e444a9ad`
 - PDF: `1157446713334d79cea4e8fabc74ec0562e2078c9a38c49ab007a1bdc01ebcb1`
+- Lean source archive: `609b1cdc367a4a322cf1f58b4873bfe5e888be0b31d21ca8f26b814c24824ed1`
